@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   unlockAdmin: pin => ipcRenderer.invoke('admin:unlock', pin),
   lockAdmin: () => ipcRenderer.invoke('admin:lock'),
   getSettings: () => ipcRenderer.invoke('admin:settings'),
+  browseLocation: kind => ipcRenderer.invoke('admin:browse', kind),
   saveSettings: settings => ipcRenderer.invoke('admin:save', settings),
   exitToDesktop: () => ipcRenderer.invoke('admin:exit'),
   onGameState: callback => {

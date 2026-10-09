@@ -46,27 +46,51 @@ async function launchCurrentGame() {
 function modal(title,help) { document.getElementById('overlay').classList.remove('hidden'); document.getElementById('modal-title').textContent=title;document.getElementById('modal-help').textContent=help;errorDisplay.textContent=''; }
 function buttons(labels,className,action) {
   const grid=node('div',className);
-  labels.forEach((label,index)=>{ const button=node('button',index===selected?'selected':'',label);button.addEventListener('click',()=>{selected=index;action();});grid.append(button); });content.append(grid);
+  labels.forEach((label,index)=>{ const button=node('button',index===selected?'selected':'',label);button.addEventListener('focus',()=>{selected=index;highlight();});button.addEventListener('click',()=>{selected=index;action();});grid.append(button); });content.append(grid);
 }
-function highlight() { [...content.querySelectorAll('button')].forEach((button,index)=>button.classList.toggle('selected',index===selected)); }
-function openPin() { if(busy) return; mode='pin';pin='';selected=0;modal('Administrator PIN','D-pad: choose digit · A: enter · X: erase · Y: submit · B: cancel');renderPin(); }
+function selectableButtons() { return [...content.querySelectorAll(mode==='keyboard'?'.key-grid button':'button')]; }
+function highlight() { selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected)); }
+function openPin() { if(busy) return; mode='pin';pin='';selected=0;modal('Administrator PIN','Type PIN + Enter, or use the keypad. D-pad: choose · A: enter · X: erase · Y: submit · Esc/B: cancel');renderPin(); }
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
 function closeModal() { mode='library';pin='';editText='';settings={};document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([key,label])=>`${label}: ${key==='new_pin'?'●'.repeat(settings[key]?.length || 0):settings[key] || '(unset)'}`),'Save and rescan','Exit to desktop','Return to games'],'settings',activate);
+  content.replaceChildren();buttons([...fields.map(([key,label])=>`${label}: ${key==='new_pin'?'●'.repeat(settings[key]?.length || 0):settings[key] || '(unset)'}`),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Exit to desktop','Return to games'],'settings',activate);
 }
 function keyboardKeys() { const letters = 'abcdefghijklmnopqrstuvwxyz';return [...'1234567890',...(caps?letters.toUpperCase():letters),' ',':','/','\\','.','_','-','[',']','"',',','(',')','+','=','@','!','Back','Case','Done']; }
-function renderKeyboard() { content.replaceChildren(node('div','entry',editKey==='new_pin'?'●'.repeat(editText.length):editText || ' '));buttons(keyboardKeys(),'key-grid',activate); }
+function renderKeyboard(focusInput = false) {
+  const entry = node('input', 'entry entry-input');
+  entry.type = editKey === 'new_pin' ? 'password' : 'text';
+  entry.value = editText; entry.maxLength = 4096;
+  entry.setAttribute('aria-label', fields.find(f => f[0] === editKey)[1]);
+  entry.autocomplete = 'off'; entry.spellcheck = false;
+  entry.addEventListener('input', () => { editText = entry.value; });
+  content.replaceChildren(entry);
+  const actions = node('div', 'edit-actions');
+  const done = node('button', '', 'Done'); done.addEventListener('click', finishEdit);
+  const cancel = node('button', '', 'Cancel'); cancel.addEventListener('click', cancelEdit);
+  actions.append(done, cancel); content.append(actions);
+  buttons(keyboardKeys(),'key-grid',activate);
+  if (focusInput) entry.focus();
+}
+function cancelEdit() { editText='';mode='settings';selected=fields.findIndex(f=>f[0]===editKey);modal('Administrator settings','Mouse/Tab: choose · Enter/A: edit/select · Esc/B: lock and return');renderSettings(); }
+async function browseLocation(kind) {
+  busy=true;
+  try { const chosen=await api.browseLocation(kind);if(chosen){settings[kind]=chosen;renderSettings();} }
+  catch(error){errorDisplay.textContent=error.message;}
+  finally{busy=false;}
+}
 async function activate() {
   if(busy) return;
   if(mode==='pin') {
     const key=pinKeys[selected];if(key==='Back')pin=pin.slice(0,-1);else if(key==='Enter')return submitPin();else if(pin.length<8)pin+=key;renderPin();
   } else if(mode==='settings') {
-    if(selected<fields.length){editKey=fields[selected][0];editText=settings[editKey] || '';mode='keyboard';selected=0;modal(`Edit ${fields.find(f=>f[0]===editKey)[1]}`,'D-pad: move · A: type · X: erase · Y: done · B: discard');renderKeyboard();}
-    else if(selected===fields.length) {
+    if(selected<fields.length){editKey=fields[selected][0];editText=settings[editKey] || '';mode='keyboard';selected=0;modal(`Edit ${fields.find(f=>f[0]===editKey)[1]}`,'Type or paste, then Enter. D-pad: move · A: type · X: erase · Y: done · Esc/B: discard');renderKeyboard(true);}
+    else if(selected===fields.length) return browseLocation('rom_directory');
+    else if(selected===fields.length+1) return browseLocation('xenia_executable');
+    else if(selected===fields.length+2) {
       busy=true;
       try { const args=JSON.parse(settings.runner_args || '[]');gamesList=await api.saveSettings({...settings,runner_args:args});renderCarousel();status('Settings saved. Library refreshed.');closeModal(); } catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
-    } else if(selected===fields.length+1){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    } else if(selected===fields.length+3){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
     else closeModal();
   } else if(mode==='keyboard') {
     const key=keyboardKeys()[selected];if(key==='Done')return finishEdit();if(key==='Back')editText=editText.slice(0,-1);else if(key==='Case')caps=!caps;else if(editText.length<4096)editText+=key;renderKeyboard();
@@ -74,19 +98,19 @@ async function activate() {
 }
 async function submitPin() {
   if(busy)return;busy=true;
-  try { await api.unlockAdmin(pin);settings=await api.getSettings();settings.runner_args=JSON.stringify(settings.runner_args);settings.new_pin='';pin='';mode='settings';selected=0;modal('Administrator settings','D-pad: choose · A: edit/select · B: lock and return. Session expires in five minutes.');renderSettings(); }
+  try { await api.unlockAdmin(pin);settings=await api.getSettings();settings.runner_args=JSON.stringify(settings.runner_args);settings.new_pin='';pin='';mode='settings';selected=0;modal('Administrator settings','Mouse/Tab: choose · Enter/A: edit/select · Esc/B: lock and return. Session expires in five minutes.');renderSettings(); }
   catch(error){pin='';renderPin();errorDisplay.textContent=error.message;}finally{busy=false;}
 }
 function finishEdit() { settings[editKey]=editText;editText='';mode='settings';selected=fields.findIndex(f=>f[0]===editKey);modal('Administrator settings','D-pad: choose · A: edit/select · B: lock and return');renderSettings(); }
 function input(action) {
   if(busy)return;
   if(mode==='library'){if(action==='left')selectNext(-1);else if(action==='right')selectNext(1);else if(action==='lb')selectNext(-5);else if(action==='rb')selectNext(5);else if(action==='a')launchCurrentGame();return;}
-  if(action==='b'){if(mode==='keyboard'){mode='settings';selected=fields.findIndex(f=>f[0]===editKey);modal('Administrator settings','D-pad: choose · A: edit/select · B: lock and return');renderSettings();}else closeModal();return;}
+  if(action==='b'){if(mode==='keyboard')cancelEdit();else closeModal();return;}
   if(action==='a')return activate();
   if(action==='x'){if(mode==='pin'){pin=pin.slice(0,-1);renderPin();}else if(mode==='keyboard'){editText=editText.slice(0,-1);renderKeyboard();}return;}
   if(action==='y'){if(mode==='pin')submitPin();else if(mode==='keyboard')finishEdit();return;}
-  const count=content.querySelectorAll('button').length, columns=mode==='pin'?3:mode==='keyboard'?10:1;
-  const delta={left:-1,right:1,up:-columns,down:columns}[action];if(delta!==undefined){selected=Math.max(0,Math.min(count-1,selected+delta));highlight();content.querySelectorAll('button')[selected]?.scrollIntoView({block:'nearest'});}
+  const count=selectableButtons().length, columns=mode==='pin'?3:mode==='keyboard'?10:1;
+  const delta={left:-1,right:1,up:-columns,down:columns}[action];if(delta!==undefined){selected=Math.max(0,Math.min(count-1,selected+delta));highlight();selectableButtons()[selected]?.scrollIntoView({block:'nearest'});}
 }
 class GamepadWheelController {
   constructor(){this.deadzone=.35;this.repeatDelay=220;this.lastInputTime=0;this.buttonStates={};this.controller=null;this.direction='';this.poll=this.poll.bind(this);requestAnimationFrame(this.poll);}
@@ -111,12 +135,23 @@ class GamepadWheelController {
 }
 // Keyboard access is useful to administrators and provides an accessibility fallback.
 window.addEventListener('keydown',event=>{
+  if(busy)return;
   if(event.ctrlKey||event.metaKey||event.altKey)return;
+  if(mode==='keyboard' && event.target?.tagName==='INPUT'){
+    if(event.key==='Enter'){event.preventDefault();finishEdit();}
+    else if(event.key==='Escape'){event.preventDefault();cancelEdit();}
+    return; // Keep native selection, cursor movement, paste and Tab behavior.
+  }
+  if(mode==='pin'&&event.key==='Enter'){event.preventDefault();submitPin();return;}
+  if(event.key==='Tab')return;
+  if(event.key==='Enter' && event.target?.tagName==='BUTTON')return; // Native button activation.
   if(mode==='pin'&&/^\d$/.test(event.key)){if(pin.length<8)pin+=event.key;renderPin();return;}
   if(mode==='keyboard'&&event.key.length===1){if(editText.length<4096)editText+=event.key;renderKeyboard();return;}
   const action={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'a',Backspace:'x',Escape:'b'}[event.key];if(action){event.preventDefault();input(action);}
 });
 window.addEventListener('DOMContentLoaded',async()=>{
+  document.getElementById('admin-button').addEventListener('click',openPin);
+  document.getElementById('close-admin').addEventListener('click',()=>{if(!busy)closeModal();});
   if(!api){status('Start with npm run start to enable the native launcher.');renderCarousel();return;}
   api.onGameState(state=>{busy=state.running;status(state.error || (state.running?'Game running…':''));});
   try{const library=await api.getLibrary();gamesList=library.games;status(library.error);renderCarousel();}catch(error){status(error.message);renderCarousel();}

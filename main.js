@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, globalShortcut, protocol, net } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, protocol, net, dialog } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -8,12 +8,19 @@ const scanner = require('./scanner');
 protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
 let queue = Promise.resolve();
+let pickerOpen = false, shortcutNoticeShown = false;
 function serialized(work) { const result = queue.then(work); queue = result.catch(() => {}); return result; }
 function requireAdmin() { if (Date.now() > adminUntil) throw new Error('Admin session expired. Enter PIN again.'); }
 function publicGames() { return library.games.map(g => ({ id: g.id, title: g.title, uses_fallback_art: g.uses_fallback_art, cover_art_path: g.cover_art_path ? `kratos-art://cover/${g.id}` : null })); }
 function shortcuts() {
-  for (const key of ['Alt+F4', 'Alt+Tab', 'Super', 'CommandOrControl+W', 'CommandOrControl+Shift+I', 'F11', 'F12']) {
-    try { if (!globalShortcut.register(key, () => {})) console.warn(`OS did not grant shortcut: ${key}`); } catch { console.warn(`Unsupported shortcut: ${key}`); }
+  // Close, devtools and fullscreen shortcuts are blocked locally by the window.
+  // Windows reserves task switching and the Windows key; Super alone is not an accelerator.
+  if (process.platform === 'linux' && !globalShortcut.isRegistered('Alt+Tab')) {
+    try { globalShortcut.register('Alt+Tab', () => {}); } catch { /* Desktop may reserve it. */ }
+  }
+  if (!shortcutNoticeShown) {
+    console.info('[Kratos] Kiosk active. OS task switching requires desktop/account restrictions.');
+    shortcutNoticeShown = true;
   }
 }
 function recover(state) {
@@ -73,6 +80,23 @@ else {
     });
     handle('admin:lock', () => { adminUntil = 0; });
     handle('admin:settings', () => { requireAdmin(); return { rom_directory: library.rom_directory, xenia_executable: library.xenia_executable, runner: library.runner || 'wine', runner_args: library.runner_args || [], platform_os: process.platform }; });
+    handle('admin:browse', async kind => {
+      requireAdmin();
+      if (!['rom_directory', 'xenia_executable'].includes(kind)) throw new Error('Invalid picker');
+      if (pickerOpen) throw new Error('A file picker is already open');
+      pickerOpen = true;
+      try {
+        const folder = kind === 'rom_directory';
+        const result = await dialog.showOpenDialog(win, {
+          title: folder ? 'Choose ROM directory' : 'Choose Xenia executable',
+          defaultPath: library[kind] || undefined,
+          properties: [folder ? 'openDirectory' : 'openFile', ...(process.platform === 'win32' ? ['dontAddToRecent'] : [])],
+          ...(folder ? {} : { filters: [{ name: 'Windows executable', extensions: ['exe'] }] })
+        });
+        requireAdmin(); // A dialog cannot extend an expired PIN session.
+        return result.canceled ? null : result.filePaths[0] || null;
+      } finally { pickerOpen = false; }
+    });
     handle('admin:save', settings => serialized(async () => {
       requireAdmin();
       for (const key of ['rom_directory', 'xenia_executable', 'runner']) if (typeof settings?.[key] !== 'string' || settings[key].length > 4096 || settings[key].includes('\0')) throw new Error('Invalid settings');
@@ -91,9 +115,18 @@ else {
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', event => event.preventDefault());
     win.webContents.on('will-attach-webview', event => event.preventDefault());
-    win.webContents.on('before-input-event', (event, input) => { if (input.alt || input.meta || input.control || ['F11', 'F12', 'Escape'].includes(input.key)) event.preventDefault(); });
+    win.webContents.on('before-input-event', (event, input) => {
+      const admin = Date.now() <= adminUntil;
+      const editShortcut = admin && input.control && !input.alt && !input.meta && ['a', 'c', 'v', 'x', 'z', 'y'].includes(input.key.toLowerCase());
+      if (input.alt || input.meta || (input.control && !editShortcut) || ['F11', 'F12'].includes(input.key)) event.preventDefault();
+    });
+    win.webContents.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
+      if (isMainFrame) console.error(`[Kratos] Window failed to load (${code}): ${description}`);
+    });
+    win.webContents.on('render-process-gone', (_event, details) => console.error(`[Kratos] Renderer stopped: ${details.reason} (exit ${details.exitCode})`));
     win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-    await win.loadFile('index.html'); shortcuts();
+    await win.loadFile(path.join(__dirname, 'index.html')); shortcuts();
+    console.info('[Kratos] Dashboard loaded.');
   }).catch(error => { console.error(error); allowQuit = true; app.quit(); });
 }
 app.on('before-quit', event => { if (win && !allowQuit) event.preventDefault(); });

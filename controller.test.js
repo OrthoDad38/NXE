@@ -22,3 +22,21 @@ test('admin chord suppresses game launch and navigation; A triggers only on pres
   context.engine.handleInput(gp,1800);
   assert.deepEqual(actions,['admin','a']);
 });
+test('native field editing preserves cursor and Tab; Enter accepts and Escape discards', () => {
+  const actions=[], listeners={};
+  const context=vm.createContext({ actions, window:{electronAPI:{},addEventListener(name,callback){listeners[name]=callback;}},document:{getElementById(){return {};}},requestAnimationFrame(){},navigator:{} });
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'renderer.js'),'utf8') + '\nmode="keyboard"; finishEdit=()=>actions.push("done"); cancelEdit=()=>actions.push("cancel"); input=action=>actions.push(action);',context);
+  const dispatch=(key,target='INPUT',extra={})=>{let prevented=false;listeners.keydown({key,target:{tagName:target},preventDefault(){prevented=true;},...extra});return prevented;};
+  assert.equal(dispatch('ArrowLeft'),false);
+  assert.equal(dispatch('Tab'),false);
+  assert.equal(dispatch('v','INPUT',{ctrlKey:true}),false);
+  assert.deepEqual(actions,[]);
+  assert.equal(dispatch('Enter'),true);
+  assert.equal(dispatch('Escape'),true);
+  assert.deepEqual(actions,['done','cancel']);
+  assert.equal(dispatch('Enter','BUTTON'),false);
+  assert.deepEqual(actions,['done','cancel']);
+  vm.runInContext('mode="pin"; submitPin=()=>actions.push("submit");',context);
+  assert.equal(dispatch('Enter','BODY'),true);
+  assert.deepEqual(actions,['done','cancel','submit']);
+});

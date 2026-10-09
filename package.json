@@ -1,16 +1,45 @@
 {
   "name": "project-kratos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Controller-first Xenia kiosk launcher",
   "main": "main.js",
   "author": "Project Kratos",
   "license": "MIT",
-  "scripts": { "start": "electron .", "build": "electron-builder", "build:windows": "electron-builder --win", "build:linux": "electron-builder --linux", "test": "node --test" },
-  "devDependencies": { "electron": "^42.0.0", "electron-builder": "^26.0.12" },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:windows": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "electron": "^42.0.0",
+    "electron-builder": "^26.0.12"
+  },
   "build": {
-    "appId": "org.projectkratos.launcher", "productName": "Project Kratos",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "preload.js", "scanner.js", "index.html", "renderer.js", "styles.css", "package.json"],
-    "win": { "target": "nsis" }, "linux": { "target": ["AppImage", "deb"], "category": "Game" }
+    "appId": "org.projectkratos.launcher",
+    "productName": "Project Kratos",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "scanner.js",
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Game"
+    }
   }
 }
