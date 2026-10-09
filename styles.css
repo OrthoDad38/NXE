@@ -1,6 +1,6 @@
 :root { --xbox-green:#78ac00; --xbox-green-glow:#c3ef00; --xbox-light-glow:#eaff71; --text-main:#fff; --text-muted:#e7eee4; }
 * { box-sizing:border-box; margin:0; padding:0; user-select:none; }
-body { height:100vh; overflow:hidden; color:#fff; font-family:'Segoe UI',Tahoma,system-ui,sans-serif; background:radial-gradient(ellipse at 25% 27%,#b1e53666 0%,transparent 48%),radial-gradient(ellipse at 45% 56%,#edfff0 0%,#b3d0bf 25%,transparent 58%),radial-gradient(ellipse at 18% 0%,#447c00 0%,#163c14 37%,transparent 65%),linear-gradient(135deg,#183d05,#779c72 60%,#1a3430); }
+body { height:100vh; overflow:hidden; color:#fff; font-family:'Convection','Convection Regular','Segoe UI',Tahoma,system-ui,sans-serif; background:radial-gradient(ellipse at 25% 27%,#b1e53666 0%,transparent 48%),radial-gradient(ellipse at 45% 56%,#edfff0 0%,#b3d0bf 25%,transparent 58%),radial-gradient(ellipse at 18% 0%,#447c00 0%,#163c14 37%,transparent 65%),linear-gradient(135deg,#183d05,#779c72 60%,#1a3430); }
 body::before { content:''; position:fixed; inset:0; pointer-events:none; background:radial-gradient(circle at 63% 3%,#e7ffc51c 0 9px,transparent 11px),radial-gradient(circle at 79% 19%,#f1ffc017 0 13px,transparent 17px),radial-gradient(circle at 46% 10%,#e7ffba16 0 5px,transparent 8px),radial-gradient(circle at 74% 33%,#efffc719 0 8px,transparent 12px),radial-gradient(ellipse at 0% 52%,#f3ffffa8,transparent 50%); }
 body::after { content:''; position:fixed; inset:56% 0 0; z-index:0; clip-path:polygon(0 9%,100% 0,100% 100%,0 100%); background:radial-gradient(ellipse at 29% 40%,#e0edf0 0%,#9daeb5 38%,#566369 73%,#293638 100%); }
 header { position:fixed; left:7.3vw; top:11.5vh; right:5vw; z-index:50; display:flex; align-items:flex-start; justify-content:space-between; }
@@ -33,18 +33,8 @@ button { font:inherit; border:1px solid #eefad586; padding:11px 14px; border-rad
 footer { position:fixed; left:7.3vw; bottom:7vh; right:16vw; z-index:15; font-size:clamp(13px,1.45vw,20px); text-shadow:0 1px 3px #233b3e88; }
 .footer-controls { display:flex; gap:24px; align-items:center; }.footer-controls>span { display:flex; gap:8px; align-items:center; }
 #controller-status { display:block; margin-top:10px; font-size:.8em; opacity:.75; }
-.dashboard-orb { position:fixed; right:8vw; bottom:8vh; width:clamp(30px,3.5vw,56px); aspect-ratio:1; z-index:15; border-radius:50%; background:radial-gradient(circle at 35% 25%,#fff 5%,#f2f5de 32%,#a6b3a5 59%,#56685c 75%,#283832); box-shadow:0 3px 8px #172c3799; }
-.dashboard-orb span::before,.dashboard-orb span::after { content:''; position:absolute; left:45%; top:3%; width:13%; height:83%; border-radius:40%; background:linear-gradient(#69a100,#9dd300,#294300); transform:rotate(38deg); }.dashboard-orb span::after { transform:rotate(-38deg); }
-.dashboard-orb::after { content:''; position:absolute; left:-90%; top:65%; width:280%; height:120%; border:1px solid #d4dfd31f; border-radius:50%; box-shadow:0 0 0 8px #e8ffe008,0 0 0 16px #e8ffe008; }
-.avatar { position:fixed; left:58%; top:35.8vh; width:9vw; height:40vh; z-index:35; pointer-events:none; filter:drop-shadow(1px 1px 1px #10313033); }
-.avatar-head { position:absolute; left:24%; top:0; width:64%; height:30%; background:#03191b; border-radius:45% 44% 30% 30%; clip-path:polygon(20% 4%,45% 0,64% 4%,78% 16%,87% 41%,94% 61%,85% 57%,91% 72%,80% 67%,75% 91%,60% 87%,58% 100%,37% 93%,29% 81%,16% 83%,19% 69%,4% 73%,12% 57%,0 57%,10% 38%); }
-.avatar-body { position:absolute; left:33%; top:29%; width:42%; height:35%; background:#03191b; clip-path:polygon(30% 0,68% 0,98% 17%,83% 40%,80% 100%,10% 100%,18% 40%,0 17%); }
-.avatar-arm { position:absolute; width:14%; height:37%; top:33%; background:#03191b; border-radius:45% 35% 20% 30%; }.arm-left { left:21%; transform:rotate(14deg); }.arm-right { left:74%; transform:rotate(-14deg); }
-.avatar-leg { position:absolute; top:60%; width:19%; height:39%; background:#03191b; border-radius:10% 15% 12% 12%; }.leg-left { left:26%; transform:rotate(10deg); }.leg-right { left:56%; transform:rotate(-5deg); }
-.avatar-leg::after { content:''; position:absolute; bottom:-1%; left:-25%; width:140%; height:13%; border-radius:35% 10% 10% 10%; background:#03191b; }
-.avatar-shadow { position:absolute; bottom:-2%; left:4%; width:110%; height:7%; border-radius:50%; background:#20363277; filter:blur(6px); z-index:-1; }
 #status { position:fixed; top:4vh; left:7.3vw; right:20vw; z-index:60; color:#fff; text-shadow:0 1px 5px #193324; font-size:15px; }
-.hidden { display:none!important; }.empty-library .avatar { display:none; }.empty-library .active-title-display { top:45vh; right:10vw; }.empty-library .active-title-text { display:block; font-size:32px; margin-bottom:10px; }
+.hidden { display:none!important; }.empty-library .active-title-display { top:45vh; right:10vw; }.empty-library .active-title-text { display:block; font-size:32px; margin-bottom:10px; }
 #overlay { position:fixed; inset:0; z-index:200; background:#183727b8; backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; }
 .panel { width:min(920px,94vw); max-height:94vh; overflow:auto; color:#29402a; background:linear-gradient(135deg,#f4faed,#d6e5d1); border:1px solid #fff9; padding:24px; border-radius:6px; box-shadow:0 15px 60px #12342280; }
 h1 { margin-bottom:8px; } #modal-help { color:#52664e; margin-bottom:16px; } #modal-error { min-height:24px; color:#9b2918; margin-top:12px; }
@@ -65,3 +55,8 @@ button:focus-visible,input:focus-visible { outline:3px solid #79a800; outline-of
 .game-card.active .tile-face { background:radial-gradient(ellipse at 40% 0%,#ffff6c,transparent 60%),linear-gradient(180deg,#eaff00 0%,#b9ec00 35%,#8ac100 60%,#365e00 82%,#031a07 100%); }
 /* Keep portrait cover artwork intact inside the green NXE tile. */
 .tile-face>img { object-fit:contain; padding:4% 12% 15%; }
+.dashboard-corner { position:fixed; right:-.1vw; top:84.8vh; width:19.44vw; height:9.26vw; z-index:15; pointer-events:none; }
+.corner-ripples { position:absolute; inset:0; width:100%; height:100%; }
+.corner-logo-shadow { position:absolute; top:3.45vw; left:calc(50% - 1.4vw); width:2.8vw; height:.8vw; border-radius:50%; background:#16282177; filter:blur(2px); }
+.dashboard-orb { position:absolute; left:calc(50% - 1.85vw); top:0; width:3.7vw; height:3.7vw; overflow:hidden; filter:drop-shadow(0 2px 2px #26372c88); }
+.dashboard-orb img { position:absolute; left:0; top:0; width:100%; height:100%; }

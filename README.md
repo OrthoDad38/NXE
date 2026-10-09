@@ -1,8 +1,10 @@
 # Project Kratos
 
-An offline Electron launcher for Xenia Canary, based on the supplied Xbox 360 NXE carousel. No games, emulator, cover downloads, or licensed Xbox artwork are included.
+An offline Electron launcher for Xenia Canary, based on the supplied Xbox 360 NXE carousel. No games, emulator, or cover downloads are included. The bundled Xbox 360 sphere logo is credited in `assets/ATTRIBUTION.md`.
 
-The dashboard follows the supplied NXE visual reference: lime-to-dark-green landscape tiles recede to the right, above a misty green background and silver floor with soft reflections. Titles sit inside tiles, fallback games use CSS disc artwork, and an original decorative avatar silhouette and silver/green orb complete the layout. Admin and launch screens use the same palette. The decorative navigation labels are not additional settings or marketplace functions.
+The dashboard follows the supplied NXE visual reference: lime-to-dark-green landscape tiles recede to the right, above a misty green background and silver floor with soft reflections. Titles sit inside tiles and fallback games use CSS disc artwork. The heading is **Game Library**, with no avatar. The corner uses the actual Xbox 360-era sphere logo and six softly blurred perspective ripple ellipses positioned to match the supplied screenshot. Admin and launch screens use the same palette. The decorative navigation labels are not additional settings or marketplace functions.
+
+All interface text prefers the locally installed **Convection** font, including game titles, admin buttons, PIN controls and editable fields. The font is not redistributed; install it on the machine running Kratos, then restart the app. Segoe UI/system fonts provide a fallback on other hosts.
 
 ## Run and build
 
