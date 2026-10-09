@@ -9,14 +9,18 @@ const pinKeys = ['1','2','3','4','5','6','7','8','9','Back','0','Enter'];
 const fields = [['rom_directory','ROM directory'],['xenia_executable','Xenia executable'],['runner','Linux runner'],['runner_args','Runner arguments (JSON array)'],['new_pin','New PIN (4–8 digits)']];
 function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
 function fallback(title) {
-  const card = node('div','fallback-card'); card.append(node('div','xbox-banner','Xbox 360'));
-  const body = node('div','fallback-body'); body.append(node('div','brand-logo','X'),node('div','fallback-title',title)); card.append(body); return card;
+  const card = node('div','fallback-card');
+  card.append(node('div','tile-rings'),node('div','disc-icon'),node('div','fallback-title',title)); return card;
 }
 function renderCarousel() {
   track.replaceChildren();
   gamesList.forEach(game => {
     const card = node('div','game-card');
-    function setArt(art) { card.replaceChildren(art); const reflection = art.cloneNode(true); reflection.classList.add('reflection'); reflection.setAttribute('aria-hidden','true'); card.append(reflection); }
+    function setArt(art) {
+      const face=node('div','tile-face');face.append(art);
+      if(art.tagName==='IMG')face.append(node('div','cover-title',game.title));
+      card.replaceChildren(face);const reflection=face.cloneNode(true);reflection.classList.add('reflection');reflection.setAttribute('aria-hidden','true');card.append(reflection);
+    }
     if (game.cover_art_path && !game.uses_fallback_art) {
       const img = node('img'); img.src = game.cover_art_path; img.alt = game.title; img.addEventListener('error', () => setArt(fallback(game.title)), { once:true }); setArt(img);
     } else setArt(fallback(game.title));
@@ -27,13 +31,17 @@ function renderCarousel() {
 function updateCarouselPositions() {
   titleDisplay.textContent = gamesList[currentIndex]?.title || 'No Games Found';
   document.getElementById('subtitle').textContent = gamesList.length ? 'Press A to Launch' : 'Admin: hold LB + RB + D-Pad Up, then press A';
-  document.getElementById('counter').textContent = gamesList.length ? `${currentIndex + 1} / ${gamesList.length}` : '';
+  document.getElementById('counter').textContent = gamesList.length ? `${currentIndex + 1} of ${gamesList.length}` : '0 games';
+  document.body.classList.toggle('empty-library', !gamesList.length);
   [...track.children].forEach((card,index) => {
     const offset = index-currentIndex, absOffset = Math.abs(offset);
     card.classList.toggle('active',offset === 0);
-    if (absOffset > 4) { card.style.opacity='0'; card.style.transform=`translateX(${offset*260}px) translateZ(-500px)`; return; }
-    if (!offset) { card.style.opacity='1'; card.style.transform='translateX(0px) translateZ(180px) rotateY(0deg) scale(1.15)'; }
-    else { const direction = offset>0?1:-1; card.style.opacity=String(1-absOffset*.22); card.style.transform=`translateX(${offset*210+direction*40}px) translateZ(${-absOffset*120}px) rotateY(${-direction*35}deg)`; }
+    card.style.zIndex=String(20-absOffset);
+    if(offset<0 || offset>5){card.style.opacity='0';card.style.visibility='hidden';card.style.transform=`translateX(${offset<0?-38:110}vw) scale(.75)`;return;}
+    card.style.visibility='visible';card.style.opacity='1';
+    const positions=[0,32.8,57,72.2,82.5,90];
+    const scales=[1,.75,.59,.49,.41,.35];
+    card.style.transform=`translateX(${positions[offset]}vw) scale(${scales[offset]})`;
   });
 }
 function selectNext(delta) { const next=Math.max(0,Math.min(gamesList.length-1,currentIndex+delta)); if(next!==currentIndex){currentIndex=next;updateCarouselPositions();} }

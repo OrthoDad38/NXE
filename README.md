@@ -2,6 +2,8 @@
 
 An offline Electron launcher for Xenia Canary, based on the supplied Xbox 360 NXE carousel. No games, emulator, cover downloads, or licensed Xbox artwork are included.
 
+The dashboard follows the supplied NXE visual reference: lime-to-dark-green landscape tiles recede to the right, above a misty green background and silver floor with soft reflections. Titles sit inside tiles, fallback games use CSS disc artwork, and an original decorative avatar silhouette and silver/green orb complete the layout. Admin and launch screens use the same palette. The decorative navigation labels are not additional settings or marketplace functions.
+
 ## Run and build
 
 Install Node.js 22 or newer, then run in this folder:

@@ -5,6 +5,7 @@
 - `node --check` passed for main, preload and renderer scripts.
 - Windows x64 NSIS packaging completed successfully with `npm run build` after granting the builder subprocess/download access. The installer has no configured publisher signing certificate and uses Electron's default application icon.
 - npm audit reported eight moderate findings in the development/build tool dependency chain, all rooted in the sprintf-js denial-of-service advisory: https://github.com/advisories/GHSA-hp3w-g68c-fv3c. `npm audit fix` did not resolve them. No production npm dependency is bundled. Review the build tool chain before release.
+- The NXE renderer was run in a hidden Electron window with a fixture preload and six sample fallback games. The 1080×608 dashboard screenshot was inspected, selection advanced to the expected game, and PIN submission reached the admin settings state without an error. This verifies rendering with sample data, not a physical controller or emulator.
 - No actual kiosk window, physical gamepad, Xenia executable, ROM, Wine/Proton installation or Linux Mint runtime was exercised. The installer was built, not installed on this machine. Production readiness requires the host acceptance checks in README.md.
 
 Electron references used for implementation:

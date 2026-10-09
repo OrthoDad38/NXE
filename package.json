@@ -1,6 +1,6 @@
 {
   "name": "project-kratos",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Controller-first Xenia kiosk launcher",
   "main": "main.js",
   "author": "Project Kratos",

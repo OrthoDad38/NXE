@@ -9,7 +9,7 @@
 </head>
 <body>
   <header>
-    <div class="brand"><div class="brand-logo">X</div><div class="brand-title">Xbox 360 Games</div></div>
+    <div class="dashboard-nav"><span class="nav-faint">Project Kratos</span><span class="nav-muted">Your collection</span><span class="nav-secondary">Game Library</span><div class="brand"><div class="brand-title">My Xbox</div></div></div>
     <div class="controls-hint">
       <button id="admin-button" class="key-badge" type="button">Admin</button>
       <span><span class="key-badge">D-PAD</span> Scroll</span>
@@ -22,7 +22,10 @@
     <div class="active-subtitle" id="subtitle">Press A to Launch</div>
   </div>
   <div class="carousel-stage"><div class="carousel-track" id="carousel-track"></div></div>
-  <footer><span id="controller-status">Connect an Xbox controller and press a button</span><span id="counter"></span></footer>
+  <div class="avatar" aria-hidden="true"><div class="avatar-head"></div><div class="avatar-body"></div><div class="avatar-arm arm-left"></div><div class="avatar-arm arm-right"></div><div class="avatar-leg leg-left"></div><div class="avatar-leg leg-right"></div><div class="avatar-shadow"></div></div>
+  <div id="counter" class="library-counter"></div>
+  <footer><div class="footer-controls"><span><span class="key-badge key-a">A</span> Select</span><span><span class="key-badge">D-PAD</span> Browse</span><span><span class="key-badge">LB / RB</span> Jump 5</span></div><span id="controller-status">Connect an Xbox controller and press a button</span></footer>
+  <div class="dashboard-orb" aria-hidden="true"><span></span></div>
   <div id="status" role="status" aria-live="polite"></div>
   <div id="launch-overlay" class="hidden" role="status" aria-live="polite">
     <div><div class="brand-logo">X</div><h1 id="launch-title"></h1><p>Starting your game…</p></div>
