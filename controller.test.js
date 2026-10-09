@@ -1,0 +1,24 @@
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+test('admin chord suppresses game launch and navigation; A triggers only on press', () => {
+  const actions=[];
+  const context=vm.createContext({ window:{ electronAPI:{}, addEventListener(){} }, document:{getElementById(){return {}; }}, requestAnimationFrame(){}, navigator:{} });
+  const source=fs.readFileSync(path.join(__dirname,'renderer.js'),'utf8');
+  vm.runInContext(source + '\ninput = action => actions.push(action); openPin = () => actions.push("admin"); globalThis.engine = new GamepadWheelController();',context);
+  context.actions=actions;
+  const gp={buttons:Array.from({length:16},()=>({pressed:false})),axes:[0,0]};
+  gp.buttons[4].pressed=gp.buttons[5].pressed=gp.buttons[12].pressed=gp.buttons[0].pressed=true;
+  context.engine.handleInput(gp,1000);
+  context.engine.handleInput(gp,1300);
+  assert.deepEqual(actions,['admin']);
+  gp.buttons.forEach(button=>button.pressed=false);
+  context.engine.handleInput(gp,1400);
+  gp.buttons[0].pressed=true;
+  context.engine.handleInput(gp,1500);
+  context.engine.handleInput(gp,1800);
+  assert.deepEqual(actions,['admin','a']);
+});

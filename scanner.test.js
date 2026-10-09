@@ -1,0 +1,35 @@
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+const scanner = require('./scanner');
+test('recursive scan, case-insensitive covers, stable IDs and missing directories', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'kratos-test-'));
+  t.after(() => fs.rm(root, { recursive:true, force:true }));
+  await fs.mkdir(path.join(root,'nested'));
+  for (const file of ['BanjoKazooie [USA].ISO','BanjoKazooie [USA].PNG','ignored.txt','nested/Viva_Pinata.god','nested/default.xex']) await fs.writeFile(path.join(root,file),'');
+  const games = await scanner.scanDirectory(root);
+  assert.equal(games.length,3);
+  assert.equal(games[0].title,'Banjo Kazooie');
+  assert.equal(games[0].uses_fallback_art,false);
+  assert.equal(games.find(g=>g.title==='Viva Pinata').uses_fallback_art,true);
+  assert.deepEqual(await scanner.scanDirectory(root),games);
+  await assert.rejects(scanner.scanDirectory(path.join(root,'missing')));
+});
+test('library persistence, legacy PIN migration, authentication and corrupt files', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(),'kratos-test-'));
+  t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  const file = path.join(root,'library.json');
+  const library = await scanner.loadLibrary(file);
+  assert.equal(scanner.verifyPin('1234',library.admin_credential),true);
+  assert.equal(scanner.verifyPin('9999',library.admin_credential),false);
+  assert.equal(scanner.verifyPin(null,library.admin_credential),false);
+  await scanner.saveLibrary(file,{platform_os:'win32',rom_directory:'',xenia_executable:'',admin_pin:'8765',games:[]});
+  const migrated=await scanner.loadLibrary(file);
+  assert.equal(scanner.verifyPin('8765',migrated.admin_credential),true);
+  assert.equal('admin_pin' in JSON.parse(await fs.readFile(file,'utf8')),false);
+  await fs.writeFile(file,'broken');
+  await assert.rejects(scanner.loadLibrary(file),/Cannot read library/);
+});
