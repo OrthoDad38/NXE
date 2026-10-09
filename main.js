@@ -52,7 +52,8 @@ async function launch(id) {
   child.once('error', error => finish({ running: false, error: `Launch failed: ${error.message}` }));
   child.once('close', code => finish({ running: false, error: code ? `Emulator exited with code ${code}` : null }));
   child.once('spawn', () => {
-    globalShortcut.unregisterAll(); win.setKiosk(false); win.setFullScreen(false); win.minimize();
+    // Keep the dashboard fullscreen underneath Xenia during window creation.
+    globalShortcut.unregisterAll();
     win.webContents.send('game:state', { running: true });
   });
   return true;

@@ -38,10 +38,14 @@ function updateCarouselPositions() {
 }
 function selectNext(delta) { const next=Math.max(0,Math.min(gamesList.length-1,currentIndex+delta)); if(next!==currentIndex){currentIndex=next;updateCarouselPositions();} }
 function status(message) { document.getElementById('status').textContent=message || ''; }
+function launchScreen(visible, title = '') {
+  document.getElementById('launch-overlay').classList.toggle('hidden', !visible);
+  document.getElementById('launch-title').textContent = title;
+}
 async function launchCurrentGame() {
   if(busy || !gamesList[currentIndex]) return;
-  busy=true; status('Launching game…');
-  try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false; status(error.message); }
+  busy=true; status('Launching game…');launchScreen(true, gamesList[currentIndex].title);
+  try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false;launchScreen(false);status(error.message); }
 }
 function modal(title,help) { document.getElementById('overlay').classList.remove('hidden'); document.getElementById('modal-title').textContent=title;document.getElementById('modal-help').textContent=help;errorDisplay.textContent=''; }
 function buttons(labels,className,action) {
@@ -153,7 +157,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('admin-button').addEventListener('click',openPin);
   document.getElementById('close-admin').addEventListener('click',()=>{if(!busy)closeModal();});
   if(!api){status('Start with npm run start to enable the native launcher.');renderCarousel();return;}
-  api.onGameState(state=>{busy=state.running;status(state.error || (state.running?'Game running…':''));});
+  api.onGameState(state=>{busy=state.running;if(!state.running)launchScreen(false);status(state.error || (state.running?'Game running…':''));});
   try{const library=await api.getLibrary();gamesList=library.games;status(library.error);renderCarousel();}catch(error){status(error.message);renderCarousel();}
   new GamepadWheelController();
 });

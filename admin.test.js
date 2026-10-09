@@ -6,9 +6,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
+const { EventEmitter } = require('node:events');
 
 async function mainHarness() {
-  const handlers = new Map(), calls = [], events = new Map();
+  const handlers = new Map(), calls = [], events = new Map(), windowCalls = [];
+  const emulator = new EventEmitter();
+  const game = { id: 'test-game', title: 'Test Game', rom_path: 'C:\\Games\\Test.iso' };
   let now = 1000000, window;
   let dialogResult = { canceled: false, filePaths: ['C:\\Games\\Xbox360'] };
   const electron = {
@@ -18,18 +21,22 @@ async function mainHarness() {
     protocol: { registerSchemesAsPrivileged() {}, handle() {} }, net: {},
     dialog: { showOpenDialog: async (_window, options) => { calls.push(options); return typeof dialogResult === 'function' ? dialogResult() : dialogResult; } },
     BrowserWindow: class {
-      constructor() { window = this; this.webContents = { mainFrame: { url: pathToFileURL(path.join(__dirname, 'index.html')).href }, setWindowOpenHandler() {}, on: (name, fn) => events.set(name, fn), session: { setPermissionRequestHandler() {} } }; }
+      constructor() { window = this; this.webContents = { mainFrame: { url: pathToFileURL(path.join(__dirname, 'index.html')).href }, setWindowOpenHandler() {}, on: (name, fn) => events.set(name, fn), send: (_channel, state) => windowCalls.push(['state', state.running]), session: { setPermissionRequestHandler() {} } }; }
       setMenu() {} on() {} async loadFile() {}
+      isDestroyed() { return false; }
+      restore() { windowCalls.push(['restore']); } show() { windowCalls.push(['show']); } focus() { windowCalls.push(['focus']); }
+      setKiosk(value) { windowCalls.push(['kiosk', value]); } setFullScreen(value) { windowCalls.push(['fullscreen', value]); }
+      minimize() { windowCalls.push(['minimize']); }
     }
   };
   const context = vm.createContext({
-    require: name => name === 'electron' ? electron : name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: '', games: [], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [], saveLibrary: async () => {} } : require(name),
+    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {} } : name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
     __dirname, console: { info() {}, warn() {}, error() {} }, process: { platform: 'win32' }, Date: { now: () => now }, URL, Response
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'main.js'), 'utf8'), context);
   await new Promise(resolve => setImmediate(resolve));
   const caller = () => ({ sender: window.webContents, senderFrame: window.webContents.mainFrame });
-  return { calls, events, invoke: (name, ...args) => handlers.get(name)(caller(), ...args), untrusted: (name, ...args) => handlers.get(name)({ sender: {}, senderFrame: {} }, ...args), setTime: value => { now = value; }, setResult: value => { dialogResult = value; } };
+  return { calls, events, emulator, windowCalls, invoke: (name, ...args) => handlers.get(name)(caller(), ...args), untrusted: (name, ...args) => handlers.get(name)({ sender: {}, senderFrame: {} }, ...args), setTime: value => { now = value; }, setResult: value => { dialogResult = value; } };
 }
 test('native pickers require PIN and trusted IPC, constrain picker type and preserve cancel', async () => {
   const h = await mainHarness();
@@ -63,4 +70,15 @@ test('admin editing allows clipboard shortcuts; kiosk still blocks devtools and 
   assert.equal(blocked({ key: 'Escape', control: false }), false);
   await h.invoke('admin:lock');
   assert.equal(blocked({}), true);
+});
+test('game startup keeps the kiosk fullscreen underneath Xenia; exit restores focus once', async () => {
+  const h = await mainHarness();
+  await h.invoke('game:launch', 'test-game');
+  h.emulator.emit('spawn');
+  assert.deepEqual(h.windowCalls, [['state', true]]);
+  await assert.rejects(h.invoke('game:launch', 'test-game'), /already running/);
+  h.emulator.emit('close', 0);
+  assert.deepEqual(h.windowCalls, [['state', true], ['restore'], ['show'], ['kiosk', true], ['fullscreen', true], ['focus'], ['state', false]]);
+  h.emulator.emit('error', new Error('late error'));
+  assert.equal(h.windowCalls.filter(call => call[0] === 'restore').length, 1);
 });

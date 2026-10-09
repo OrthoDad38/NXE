@@ -1,6 +1,6 @@
 {
   "name": "project-kratos",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Controller-first Xenia kiosk launcher",
   "main": "main.js",
   "author": "Project Kratos",
@@ -10,7 +10,8 @@
     "build": "electron-builder",
     "build:windows": "electron-builder --win",
     "build:linux": "electron-builder --linux",
-    "test": "node --test"
+    "test": "node --test",
+    "shortcut": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1"
   },
   "devDependencies": {
     "electron": "^42.0.0",
@@ -33,6 +34,11 @@
     ],
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Project Kratos"
     },
     "linux": {
       "target": [

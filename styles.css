@@ -34,6 +34,9 @@ button:focus-visible, input:focus-visible { outline:3px solid #00ff66; outline-o
 .entry-input { width:100%; color:#fff; font:inherit; border:1px solid #627087; border-radius:6px; user-select:text; }
 .edit-actions { display:flex; gap:8px; margin:12px 0; }
 .close-admin { float:right; margin-left:12px; }
+#launch-overlay { position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle,#173127,#07090c 70%); text-align:center; }
+#launch-overlay .brand-logo { width:72px; height:72px; font-size:2rem; margin:0 auto 24px; }
+#launch-title { max-width:80vw; overflow-wrap:anywhere; } #launch-overlay p { color:#a5d9b8; }
 .settings button { text-align:left; overflow-wrap:anywhere; } .key-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:6px; }
 .pin-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:360px; margin:auto; }
 .entry { padding:12px; background:#090c10; margin-bottom:12px; min-height:48px; overflow-wrap:anywhere; white-space:pre-wrap; }

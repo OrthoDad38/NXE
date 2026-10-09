@@ -17,6 +17,8 @@ npm run build
 
 ## First setup and controller navigation
 
+For a Windows source checkout, run `npm run shortcut` once after `npm install`. This creates **Project Kratos.lnk** on your Windows desktop (including redirected/OneDrive desktops) and launches the checkout without a visible terminal. Keep the checkout at the same location; rerun the command if you move it. The Windows installer also explicitly creates desktop and Start menu shortcuts and recreates the desktop shortcut on reinstall. Running `npm run start` by itself does not install a shortcut.
+
 Connect a standard-mapped Xbox controller and press a button. Chromium's native Gamepad API handles the OS input backend; this app does not bundle independent XInput, evdev or SDL bindings. Test your controller's standard mapping on each target desktop.
 
 - D-pad or left stick: scroll. A: launch. LB/RB: jump five games.
@@ -47,7 +49,7 @@ Linux:   wine xenia_canary.exe --fullscreen <absolute-ROM-path>
 Proton:  /path/to/proton run xenia_canary.exe --fullscreen <absolute-ROM-path>
 ```
 
-The kiosk releases its global shortcuts and minimizes only after the process starts. Process errors or termination restore fullscreen, kiosk mode, keyboard focus and Gamepad API polling. Controllers switch back to the launcher once its window regains focus. Wine/Proton compatibility and Xenia's fullscreen behavior need testing with your exact emulator build and games.
+The kiosk shows a fullscreen **Starting your game…** screen and releases global shortcuts when the process starts. It stays fullscreen underneath Xenia instead of minimizing and exposing the desktop while the emulator initializes. Xenia creates and focuses its own window; no fixed startup delay or repeated focus forcing is used. Its own windowed-to-fullscreen transition and loading time depend on the emulator build and game. Process errors or termination restore fullscreen, kiosk mode, keyboard focus and Gamepad API polling. Controllers switch back to the launcher once its window regains focus. Wine/Proton compatibility and Xenia's fullscreen behavior need testing with your exact emulator build and games.
 
 ## Kiosk security and limitations
 
