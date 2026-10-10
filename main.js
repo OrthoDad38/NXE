@@ -6,6 +6,8 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
 const covers = require('./covers');
+const nxe = require('./nxe');
+let importedTheme=null;
 const coverService = covers.createService((...args) => net.fetch(...args));
 protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
@@ -66,17 +68,41 @@ else {
   app.whenReady().then(async () => {
     libraryFile = path.join(app.getPath('userData'), 'library.json');
     library = await scanner.loadLibrary(libraryFile);
+    try { importedTheme=await nxe.loadTheme(library.nxe_theme,app.getPath('userData')); } catch(error) { console.warn(`[Kratos] Theme fallback: ${error.message}`); }
     const coverDirectory = path.join(app.getPath('userData'), 'covers');
     let scanError = '';
     try { library.games = await covers.applyCached(await scanner.scanDirectory(library.rom_directory), coverDirectory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
     protocol.handle('kratos-art', request => {
       const url = new URL(request.url);
+      if(url.hostname==='theme'){
+        const asset=importedTheme?.manifest.assets[url.pathname.slice(1)];
+        return asset?net.fetch(pathToFileURL(path.join(importedTheme.directory,asset.file)).href):new Response('Not found',{status:404});
+      }
       const game = library.games.find(g => g.id === url.pathname.slice(1));
       if (url.hostname !== 'cover' || !game?.cover_art_path) return new Response('Not found', { status: 404 });
       return net.fetch(pathToFileURL(game.cover_art_path).href);
     });
     handle('library:get', () => ({ games: publicGames(), error: scanError }));
     handle('game:launch', launch);
+    handle('theme:get',()=>nxe.publicTheme(importedTheme));
+    handle('admin:theme-import',()=>serialized(async()=>{
+      requireAdmin();if(pickerOpen)throw new Error('A file picker is already open');pickerOpen=true;
+      try {
+        const result=await dialog.showOpenDialog(win,{title:'Choose Xbox 360 dashboard folder',properties:['openDirectory']});
+        requireAdmin();if(result.canceled)return null;
+        const config=await nxe.importTheme(result.filePaths[0],app.getPath('userData'),requireAdmin);
+        const theme=await nxe.loadTheme(config,app.getPath('userData'));requireAdmin();
+        const next={...library,nxe_theme:config};await scanner.saveLibrary(libraryFile,next);library=next;importedTheme=theme;
+        return nxe.publicTheme(theme);
+      } finally {pickerOpen=false;}
+    }));
+    handle('admin:theme-select',id=>serialized(async()=>{
+      requireAdmin();
+      if(id!==null && !importedTheme?.manifest.backgrounds.some(b=>b.id===id))throw new Error('Unknown theme');
+      if(!importedTheme)return nxe.publicTheme(null);
+      const config={directory:importedTheme.directory,selected:id};const next={...library,nxe_theme:config};
+      await scanner.saveLibrary(libraryFile,next);library=next;importedTheme.selected=id;return nxe.publicTheme(importedTheme);
+    }));
     handle('admin:unlock', pin => {
       if (Date.now() < blockedUntil) throw new Error('Too many attempts. Wait 30 seconds.');
       if (!scanner.verifyPin(pin, library.admin_credential)) { if (++attempts >= 5) { blockedUntil = Date.now() + 30000; attempts = 0; } throw new Error('Incorrect PIN'); }

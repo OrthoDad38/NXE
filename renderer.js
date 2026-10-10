@@ -8,6 +8,23 @@ const errorDisplay = document.getElementById('modal-error');
 const pinKeys = ['1','2','3','4','5','6','7','8','9','Back','0','Enter'];
 const fields = [['rom_directory','ROM directory'],['xenia_executable','Xenia executable'],['runner','Linux runner'],['runner_args','Runner arguments (JSON array)'],['new_pin','New PIN (4–8 digits)']];
 let coverQueue = [], coverMatches = [], coverPosition = 0;
+let themeState={backgrounds:[],selected:null};
+function applyTheme(state){
+  themeState=state;const image=document.getElementById('theme-wallpaper'),background=state.backgrounds.find(b=>b.id===state.selected);
+  image.classList.toggle('hidden',!background);document.body.classList.toggle('nxe-theme',!!background);
+  if(background){image.onerror=()=>{image.classList.add('hidden');document.body.classList.remove('nxe-theme');status('Imported background unavailable. Using Kratos theme.');};image.src=background.url;}
+  else image.removeAttribute('src');
+}
+function renderThemes(){
+  mode='themes';selected=0;modal('NXE themes','D-pad: choose · A: import/apply · B: return to settings');
+  content.replaceChildren(node('p','cover-summary',themeState.assetCount?`${themeState.assetCount} images imported · ${themeState.resourceCount} archive entries indexed`:'Import your local NXE dashboard assets.'));
+  buttons(['Import dashboard folder…','Original Kratos theme',...themeState.backgrounds.map(b=>`${b.id===themeState.selected?'✓ ':''}${b.label}`),'Return to settings'],'cover-options',activate);
+}
+async function activateTheme(){
+  const choice=selected;if(choice===themeState.backgrounds.length+2)return returnSettings();busy=true;
+  try {const state=choice===0?await api.importTheme():await api.selectTheme(choice===1?null:themeState.backgrounds[choice-2].id);if(state)applyTheme(state);renderThemes();}
+  catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
+}
 function returnSettings() { mode='settings';selected=fields.length+4;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
 async function showCoverMatch() {
   mode='covers';selected=0;busy=true;
@@ -117,7 +134,7 @@ function openPin() { if(busy) return; mode='pin';pin='';selected=0;modal('Admini
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
 function closeModal() { mode='library';pin='';editText='';settings={};document.body.classList.remove('modal-open');document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Return to games','Download missing covers','Exit to desktop'],'settings',activate);
+  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Return to games','Download missing covers','NXE themes','Exit to desktop'],'settings',activate);
   const list=content.firstElementChild;list.prepend(node('div','settings-highlight'));
   const shell=node('div','settings-shell'),details=node('div','settings-details');
   details.append(node('div','detail-label','Current setting'),node('div','setting-value'),node('p','setting-description'));
@@ -129,8 +146,8 @@ function updateSettingsDetails() {
   const value=content.querySelector('.setting-value');
   if(!value)return;
   value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
-  const descriptionIndex=selected===fields.length+3?9:selected===fields.length+5?8:selected;
-  content.querySelector('.setting-description').textContent=selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
+  const descriptionIndex=selected===fields.length+3?9:selected===fields.length+6?8:selected;
+  content.querySelector('.setting-description').textContent=selected===fields.length+5?'Import original NXE theme images from your local dashboard folder. Choose a wallpaper, or restore the Kratos theme.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
   if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
@@ -159,6 +176,7 @@ async function browseLocation(kind) {
 }
 async function activate() {
   if(busy) return;
+  if(mode==='themes')return activateTheme();
   if(mode==='covers') return activateCover();
   if(mode==='pin') {
     const key=pinKeys[selected];if(key==='Back')pin=pin.slice(0,-1);else if(key==='Enter')return submitPin();else if(pin.length<8)pin+=key;renderPin();
@@ -169,7 +187,8 @@ async function activate() {
     else if(selected===fields.length+2) {
       busy=true;
       try { const args=JSON.parse(settings.runner_args || '[]');gamesList=await api.saveSettings({...settings,runner_args:args});renderCarousel();status('Settings saved. Library refreshed.');closeModal(); } catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
-    } else if(selected===fields.length+5){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    } else if(selected===fields.length+6){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    else if(selected===fields.length+5)return renderThemes();
     else if(selected===fields.length+4)return startCoverDownloads();
     else closeModal();
   } else if(mode==='keyboard') {
@@ -185,7 +204,7 @@ function finishEdit() { settings[editKey]=editText;editText='';mode='settings';s
 function input(action) {
   if(busy)return;
   if(mode==='library'){if(action==='left')selectNext(-1);else if(action==='right')selectNext(1);else if(action==='lb')selectNext(-5);else if(action==='rb')selectNext(5);else if(action==='a')launchCurrentGame();return;}
-  if(action==='b'){if(mode==='keyboard')cancelEdit();else if(mode==='covers')returnSettings();else closeModal();return;}
+  if(action==='b'){if(mode==='keyboard')cancelEdit();else if(mode==='covers'||mode==='themes')returnSettings();else closeModal();return;}
   if(action==='a')return activate();
   if(action==='x'){if(mode==='pin'){pin=pin.slice(0,-1);renderPin();}else if(mode==='keyboard'){editText=editText.slice(0,-1);renderKeyboard();}return;}
   if(action==='y'){if(mode==='pin')submitPin();else if(mode==='keyboard')finishEdit();return;}
@@ -235,6 +254,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('close-admin').addEventListener('click',()=>{if(!busy)closeModal();});
   if(!api){status('Start with npm run start to enable the native launcher.');renderCarousel();return;}
   api.onGameState(state=>{busy=state.running;if(!state.running)launchScreen(false);status(state.error || (state.running?'Game running…':''));});
+  try{applyTheme(await api.getTheme());}catch(error){status(`Theme unavailable: ${error.message}`);}
   try{const library=await api.getLibrary();gamesList=library.games;status(library.error);renderCarousel();}catch(error){status(error.message);renderCarousel();}
   new GamepadWheelController();
 });

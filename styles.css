@@ -105,3 +105,6 @@ button:focus-visible,input:focus-visible { outline:3px solid #79a800; outline-of
 .panel { border-radius:16px; }
 button,.entry,.entry-input { border-radius:10px; }
 .settings button,.settings-highlight { border-radius:8px; }
+#theme-wallpaper { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; pointer-events:none; }
+.nxe-theme::before { display:none; }
+.nxe-theme::after { background:radial-gradient(ellipse at 29% 35%,#e0edf0eb 0%,#9daeb5e0 38%,#566369eb 73%,#293638f5 100%); }
