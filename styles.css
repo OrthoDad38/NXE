@@ -98,9 +98,9 @@ button:focus-visible,input:focus-visible { outline:3px solid #79a800; outline-of
 .cover-options button { text-align:left; font-size:clamp(13px,1.4vw,20px); padding:6px 10px; }
 .cover-summary { margin-bottom:10px; font-size:clamp(16px,1.8vw,25px); }
 /* Artwork tiles follow their image proportions and share the dashboard floor. */
-.game-card,.tile-face { border-radius:0; }
+.game-card,.tile-face { border-radius:12px; }
 .game-card.has-cover { --cover-ratio:.72; width:min(33vw,calc(44vh * var(--cover-ratio))); height:min(44vh,calc(33vw / var(--cover-ratio))); top:calc(78.5vh - min(44vh,calc(33vw / var(--cover-ratio)))); }
-.game-card.has-cover .tile-face>img { padding:0; object-fit:contain; border-radius:12px; }
+.game-card.has-cover .tile-face>img { padding:0; object-fit:contain; border-radius:inherit; }
 .game-card.has-cover .tile-face { background:transparent; box-shadow:none; }
 .panel { border-radius:16px; }
 button,.entry,.entry-input { border-radius:10px; }
