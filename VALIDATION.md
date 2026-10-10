@@ -19,3 +19,5 @@ Electron references used for implementation:
 - https://www.electronjs.org/docs/latest/tutorial/security
 
 Version 1.0.7: admin-only missing-cover review and download using x360db. Verified live catalog lookup and JPEG download for Viva Piñata. Regression coverage includes ranking, accent normalization, invalid selections/nonimages, cached cover rescan, local-art precedence, and unauthorized cover IPC rejection. Hidden Electron fixture checks review queue, download/advance, B return, and whole-cover contain layout.
+
+Version 1.0.9: Exit to desktop is the final admin option. Artwork tiles use the image's natural aspect ratio within the existing dashboard height/width limits, with no title overlay or internal padding. Dynamic carousel spacing follows tile widths; fallback tiles retain their titles and green styling. Tiles, menu panels, buttons, inputs and selection highlights have softer corners. Hidden Electron fixture verified final exit position/details, portrait aspect ratio, missing cover-title overlay, fallback titles and rounded corners. All 11 regression tests pass.

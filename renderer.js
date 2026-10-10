@@ -8,7 +8,7 @@ const errorDisplay = document.getElementById('modal-error');
 const pinKeys = ['1','2','3','4','5','6','7','8','9','Back','0','Enter'];
 const fields = [['rom_directory','ROM directory'],['xenia_executable','Xenia executable'],['runner','Linux runner'],['runner_args','Runner arguments (JSON array)'],['new_pin','New PIN (4–8 digits)']];
 let coverQueue = [], coverMatches = [], coverPosition = 0;
-function returnSettings() { mode='settings';selected=fields.length+5;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
+function returnSettings() { mode='settings';selected=fields.length+4;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
 async function showCoverMatch() {
   mode='covers';selected=0;busy=true;
   const game=coverQueue[coverPosition];
@@ -47,12 +47,16 @@ function renderCarousel() {
   gamesList.forEach(game => {
     const card = node('div','game-card');
     function setArt(art) {
+      card.classList.toggle('has-cover',art.tagName==='IMG');
+      card.style.removeProperty('--cover-ratio');
       const face=node('div','tile-face');face.append(art);
-      if(art.tagName==='IMG')face.append(node('div','cover-title',game.title));
       card.replaceChildren(face);const reflection=face.cloneNode(true);reflection.classList.add('reflection');reflection.setAttribute('aria-hidden','true');card.append(reflection);
     }
     if (game.cover_art_path && !game.uses_fallback_art) {
-      const img = node('img'); img.src = game.cover_art_path; img.alt = game.title; img.addEventListener('error', () => setArt(fallback(game.title)), { once:true }); setArt(img);
+      const img = node('img'); img.alt = game.title;
+      img.addEventListener('load',()=>{card.style.setProperty('--cover-ratio',String(img.naturalWidth/img.naturalHeight));updateCarouselPositions();},{once:true});
+      img.addEventListener('error', () => {setArt(fallback(game.title));updateCarouselPositions();}, { once:true });
+      setArt(img);img.src = game.cover_art_path;
     } else setArt(fallback(game.title));
     track.append(card);
   });
@@ -70,9 +74,11 @@ function updateCarouselPositions() {
     card.style.zIndex=String(20-absOffset);
     if(offset<0 || offset>5){card.style.opacity='0';card.style.visibility='visible';card.style.transform=`translateX(${offset<0?-38:110}vw) scale(${offset<0?1.06:.35})`;return;}
     card.style.visibility='visible';card.style.opacity='1';
-    const positions=[0,32.8,57,72.2,82.5,90];
     const scales=[1,.75,.59,.49,.41,.35];
-    card.style.transform=`translateX(${positions[offset]}vw) scale(${scales[offset]})`;
+    const overlaps=[.994,.978,.78,.637,.554];
+    let distance=0;
+    for(let step=0;step<offset;step++)distance+=track.children[currentIndex+step].offsetWidth*scales[step]*overlaps[step];
+    card.style.transform=`translateX(${distance}px) scale(${scales[offset]})`;
   });
 }
 function selectNext(delta) { const next=Math.max(0,Math.min(gamesList.length-1,currentIndex+delta)); if(next!==currentIndex){currentIndex=next;updateCarouselPositions();} }
@@ -111,7 +117,7 @@ function openPin() { if(busy) return; mode='pin';pin='';selected=0;modal('Admini
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
 function closeModal() { mode='library';pin='';editText='';settings={};document.body.classList.remove('modal-open');document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Exit to desktop','Return to games','Download missing covers'],'settings',activate);
+  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Return to games','Download missing covers','Exit to desktop'],'settings',activate);
   const list=content.firstElementChild;list.prepend(node('div','settings-highlight'));
   const shell=node('div','settings-shell'),details=node('div','settings-details');
   details.append(node('div','detail-label','Current setting'),node('div','setting-value'),node('p','setting-description'));
@@ -123,7 +129,8 @@ function updateSettingsDetails() {
   const value=content.querySelector('.setting-value');
   if(!value)return;
   value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
-  content.querySelector('.setting-description').textContent=description[selected] || 'Find box art for games in the saved library. Confirm each suggested title or skip it. Internet is needed only to find and download covers; saved covers work offline. Save and rescan first if you changed the ROM directory.';
+  const descriptionIndex=selected===fields.length+3?9:selected===fields.length+5?8:selected;
+  content.querySelector('.setting-description').textContent=selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
   if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
@@ -162,8 +169,8 @@ async function activate() {
     else if(selected===fields.length+2) {
       busy=true;
       try { const args=JSON.parse(settings.runner_args || '[]');gamesList=await api.saveSettings({...settings,runner_args:args});renderCarousel();status('Settings saved. Library refreshed.');closeModal(); } catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
-    } else if(selected===fields.length+3){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
-    else if(selected===fields.length+5)return startCoverDownloads();
+    } else if(selected===fields.length+5){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    else if(selected===fields.length+4)return startCoverDownloads();
     else closeModal();
   } else if(mode==='keyboard') {
     const key=keyboardKeys()[selected];if(key==='Done')return finishEdit();if(key==='Back')editText=editText.slice(0,-1);else if(key==='Case')caps=!caps;else if(editText.length<4096)editText+=key;renderKeyboard();
@@ -222,6 +229,7 @@ window.addEventListener('keydown',event=>{
   if(mode==='keyboard'&&event.key.length===1){if(editText.length<4096)editText+=event.key;renderKeyboard();return;}
   const action={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'a',Backspace:'x',Escape:'b'}[event.key];if(action){event.preventDefault();input(action);}
 });
+window.addEventListener('resize',updateCarouselPositions);
 window.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('admin-button').addEventListener('click',openPin);
   document.getElementById('close-admin').addEventListener('click',()=>{if(!busy)closeModal();});
