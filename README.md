@@ -85,7 +85,7 @@ npm test
 npm run build:linux
 ```
 
-The configured outputs are AppImage and Debian packages under `dist/`. First builds download packaging tools, Electron, and a Linux FFmpeg binary. No cabextract or dashboard import is needed for the built-in theme. For optional compressed dashboard imports, install `cabextract` with `sudo apt install cabextract`.
+The configured outputs are AppImage and Debian packages under `dist/`. First builds download packaging tools, Electron, and a Linux FFmpeg binary. No cabextract or dashboard import is needed for the built-in theme.
 
 ### Configure Xenia on Mint
 
@@ -114,11 +114,11 @@ PIN protection starts enabled, including for existing libraries without the new 
 
 Fresh installations automatically use **Original NXE · Green dashboard**. Existing wallpaper, audio, and imported-theme preferences are retained when available. If an older import is missing, Kratos falls back to the built-in NXE theme.
 
-Admin → **NXE themes** offers **Built-in NXE theme**, all ten background choices, sound volume (0/25/50/75/100%), mute, and Test sound. Theme/audio changes save immediately. The seven cues are left, right, select, back, open, close, and focus. Playback failures do not block navigation. **Original Kratos theme** selects the earlier rendered background; **Built-in NXE theme** restores the included green dashboard and its scene assets.
+Admin → **NXE themes** offers **Original NXE · Green dashboard**, **Wallpaper 1** through **Wallpaper 9**, sound volume (0/25/50/75/100%), mute, and Test sound. Theme/audio changes save immediately. The seven cues are left, right, select, back, open, close, and focus. Playback failures do not block navigation.
 
 All 679 recovered image/audio assets and resource metadata are included under `assets/nxe/`; no Xbox executable, account/profile, ROM, or emulator binary is included. Bundled sound files are already converted to PCM WAV, so ordinary playback does not need conversion or access to the original download folder. Paths in saved built-in preferences use the portable `builtin` identifier.
 
-Optional **Import dashboard folder…** still accepts a local folder containing `NXE/Theme1/Wallpaper1.jpg` (or its parent). It caches supported images and decodes dashboard resources without executing Xbox code. Windows uses expand.exe; Linux uses cabextract. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
+The menu no longer shows theme import, built-in reset, or the earlier Kratos background options. Existing imported caches and wallpaper preferences still load; asset IDs are unchanged by renaming the wallpapers. The resource importer remains in the codebase for compatibility. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
 
 ## Games and cover artwork
 

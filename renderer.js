@@ -31,14 +31,14 @@ function applyTheme(state){
   if(gamesList.length)renderCarousel();
 }
 function renderThemes(){
-  mode='themes';selected=0;modal('NXE themes','D-pad: choose · A: import/apply · B: return to settings');
+  mode='themes';selected=0;modal('NXE themes','D-pad: choose · A: apply · B: return to settings');
   content.replaceChildren(node('p','cover-summary',themeState.assetCount?`${Object.keys(themeState.sounds || {}).length} sounds · ${themeState.menu?'NXE '+themeState.menu.version+' menus':'reimport to recover menu resources'}`:'Import your local NXE dashboard assets.'));
-  buttons(['Built-in NXE theme','Import dashboard folder…','Original Kratos theme',...themeState.backgrounds.map(b=>`${b.id===themeState.selected?'✓ ':''}${b.label}`),`Sound volume: ${Math.round((themeState.audio?.volume ?? .5)*100)}%`,`Sound: ${themeState.audio?.muted?'muted':'on'}`,'Test sound','Return to settings'],'cover-options',activate);
+  buttons([...themeState.backgrounds.map(b=>`${b.id===themeState.selected?'✓ ':''}${b.label}`),`Sound volume: ${Math.round((themeState.audio?.volume ?? .5)*100)}%`,`Sound: ${themeState.audio?.muted?'muted':'on'}`,'Test sound','Return to settings'],'cover-options',activate);
 }
 async function activateTheme(){
-  const choice=selected,audioIndex=themeState.backgrounds.length+3;if(choice===audioIndex+3)return returnSettings();
+  const choice=selected,audioIndex=themeState.backgrounds.length;if(choice===audioIndex+3)return returnSettings();
   if(choice===audioIndex+2){window.uiSounds?.play('select');return;}busy=true;
-  try {const state=choice===0?await api.useBuiltinTheme():choice===1?await api.importTheme():choice>=audioIndex?await api.setThemeAudio({volume:choice===audioIndex?((Math.round((themeState.audio?.volume ?? .5)*4)+1)%5)/4:themeState.audio?.volume ?? .5,muted:choice===audioIndex+1?!themeState.audio?.muted:themeState.audio?.muted ?? false}):await api.selectTheme(choice===2?null:themeState.backgrounds[choice-3].id);if(state)applyTheme(state);renderThemes();selected=Math.min(choice,selectableButtons().length-1);highlight();}
+  try {const state=choice>=audioIndex?await api.setThemeAudio({volume:choice===audioIndex?((Math.round((themeState.audio?.volume ?? .5)*4)+1)%5)/4:themeState.audio?.volume ?? .5,muted:choice===audioIndex+1?!themeState.audio?.muted:themeState.audio?.muted ?? false}):await api.selectTheme(themeState.backgrounds[choice].id);if(state)applyTheme(state);renderThemes();selected=Math.min(choice,selectableButtons().length-1);highlight();}
   catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
 }
 function returnSettings() { mode='settings';selected=fields.length+4;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
@@ -175,7 +175,7 @@ function updateSettingsDetails() {
   if(!value)return;
   value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
   const descriptionIndex=selected===fields.length+3?9:selected===fields.length+7?8:selected;
-  content.querySelector('.setting-description').textContent=selected===fields.length+6?'Toggle PIN protection immediately. When off, Start or Admin opens settings directly, including Exit to desktop. Turning protection back on uses the saved PIN.':selected===fields.length+5?'Choose a built-in NXE wallpaper and sound preferences, restore the built-in NXE theme, or import another local dashboard folder.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
+  content.querySelector('.setting-description').textContent=selected===fields.length+6?'Toggle PIN protection immediately. When off, Start or Admin opens settings directly, including Exit to desktop. Turning protection back on uses the saved PIN.':selected===fields.length+5?'Choose the original green NXE dashboard or Wallpaper 1–9, and adjust sound volume or mute.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
   if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
