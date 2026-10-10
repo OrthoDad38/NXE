@@ -80,4 +80,6 @@ Unlock Administrator settings with your PIN, then choose **Download missing cove
 
 Artwork is fetched from the [x360db archive](https://github.com/xenia-manager/x360db), without an API key. Coverage varies; unavailable artwork leaves the fallback tile intact. Network errors can be retried or skipped. The five-minute admin session still applies; reopen settings with your PIN if it expires.
 
+The build-tool dependencies use a scoped override for `@electron/get` → `global-agent` 4.1.3 to remove the vulnerable `sprintf-js` logging dependency chain. Commit and use the supplied lockfile; `npm ci` installs the tested versions reproducibly. Version 1.0.8 passes the full npm audit as of October 9, 2026.
+
 Covers are cached under the application's userData `covers` directory and reapplied on startup/rescan. Local PNG/JPG artwork beside the ROM takes priority. Existing covers are never replaced by this action. The entire cover remains visible using `object-fit: contain`. Requests go through the main process to fixed archive URLs with timeouts, size limits, and JPEG signature checks. No remote URLs or filesystem paths are accepted from the renderer. Artwork remains the property of its respective owners; the archive supplies it for identification and archival purposes.
