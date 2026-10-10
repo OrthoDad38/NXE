@@ -27,6 +27,7 @@ function renderCarousel() {
     track.append(card);
   });
   currentIndex = Math.max(0, Math.min(currentIndex, gamesList.length - 1)); updateCarouselPositions();
+  if(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) track.animate?.([{opacity:0,transform:'translateX(35px) scale(.97)'},{opacity:1,transform:'translateX(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.75,.25,1)'});
 }
 function updateCarouselPositions() {
   titleDisplay.textContent = gamesList[currentIndex]?.title || 'No Games Found';
@@ -37,7 +38,7 @@ function updateCarouselPositions() {
     const offset = index-currentIndex, absOffset = Math.abs(offset);
     card.classList.toggle('active',offset === 0);
     card.style.zIndex=String(20-absOffset);
-    if(offset<0 || offset>5){card.style.opacity='0';card.style.visibility='hidden';card.style.transform=`translateX(${offset<0?-38:110}vw) scale(.75)`;return;}
+    if(offset<0 || offset>5){card.style.opacity='0';card.style.visibility='visible';card.style.transform=`translateX(${offset<0?-38:110}vw) scale(${offset<0?1.06:.35})`;return;}
     card.style.visibility='visible';card.style.opacity='1';
     const positions=[0,32.8,57,72.2,82.5,90];
     const scales=[1,.75,.59,.49,.41,.35];
@@ -56,6 +57,10 @@ async function launchCurrentGame() {
   try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false;launchScreen(false);status(error.message); }
 }
 function modal(title,help) {
+  document.body.classList.add('modal-open');
+  const panel=document.querySelector('.panel');
+  if(panel.dataset.mode!==mode && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) panel.animate?.([{opacity:0,transform:'translateX(50px)'},{opacity:1,transform:'translateX(0)'}],{duration:260,easing:'cubic-bezier(.2,.75,.25,1)'});
+  panel.dataset.mode=mode;
   document.getElementById('overlay').classList.remove('hidden');document.getElementById('modal-title').textContent=title;
   const hints=document.getElementById('modal-help');hints.replaceChildren();
   for(const part of help.split(/\b([ABXY])\b/)) {
@@ -71,12 +76,26 @@ function buttons(labels,className,action) {
   labels.forEach((label,index)=>{ const button=node('button',index===selected?'selected':'',label);button.addEventListener('focus',()=>{selected=index;highlight();});button.addEventListener('click',()=>{selected=index;action();});grid.append(button); });content.append(grid);
 }
 function selectableButtons() { return [...content.querySelectorAll(mode==='keyboard'?'.key-grid button':'button')]; }
-function highlight() { selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected)); }
+function highlight() { selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected));if(mode==='settings')updateSettingsDetails(); }
 function openPin() { if(busy) return; mode='pin';pin='';selected=0;modal('Administrator PIN','Type PIN + Enter, or use the keypad. D-pad: choose · A: enter · X: erase · Y: submit · Esc/B: cancel');renderPin(); }
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
-function closeModal() { mode='library';pin='';editText='';settings={};document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
+function closeModal() { mode='library';pin='';editText='';settings={};document.body.classList.remove('modal-open');document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([key,label])=>`${label}: ${key==='new_pin'?'●'.repeat(settings[key]?.length || 0):settings[key] || '(unset)'}`),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Exit to desktop','Return to games'],'settings',activate);
+  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Exit to desktop','Return to games'],'settings',activate);
+  const list=content.firstElementChild;list.prepend(node('div','settings-highlight'));
+  const shell=node('div','settings-shell'),details=node('div','settings-details');
+  details.append(node('div','detail-label','Current setting'),node('div','setting-value'),node('p','setting-description'));
+  shell.append(list,details);content.append(shell);updateSettingsDetails();
+}
+function updateSettingsDetails() {
+  const description=['Choose the folder containing your Xbox 360 games.','Choose the Xenia Canary executable.','Linux: choose the Wine or Proton runner. Windows launches Xenia directly.','Linux runner arguments, as a JSON array.','Set a new administrator PIN using 4–8 digits.','Open the native folder picker. The chosen path is saved when you select Save and rescan.','Open the native executable picker. The chosen path is saved when you select Save and rescan.','Save these settings and refresh your game collection.','Close Project Kratos and return to the desktop.','Return to Game Library without saving pending changes.'];
+  const field=fields[selected]?.[0];
+  const value=content.querySelector('.setting-value');
+  if(!value)return;
+  value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
+  content.querySelector('.setting-description').textContent=description[selected] || '';
+  const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
+  if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
 function keyboardKeys() { const letters = 'abcdefghijklmnopqrstuvwxyz';return [...'1234567890',...(caps?letters.toUpperCase():letters),' ',':','/','\\','.','_','-','[',']','"',',','(',')','+','=','@','!','Back','Case','Done']; }
 function renderKeyboard(focusInput = false) {

@@ -6,6 +6,8 @@ The dashboard follows the supplied NXE visual reference: lime-to-dark-green land
 
 All interface text prefers the locally installed **Convection** font, including game titles, admin buttons, PIN controls and editable fields. The font is not redistributed; install it on the machine running Kratos, then restart the app. Segoe UI/system fonts provide a fallback on other hosts.
 
+Motion and admin menus follow the [NXE segment at 1:09–1:25](https://www.youtube.com/watch?v=W_jT9c7RP5Q&t=69s): the collection enters with a short slide/fade, outgoing tiles drift left and fade while the next tile enlarges into place, and admin pages slide into a slate-blue panel. Settings use a moving glossy green highlight, thin row separators and a right-hand current-value/help column. This recreates the observed interaction style with Kratos settings rather than copying the Xbox console's settings functionality. Motion is disabled when the OS requests reduced motion.
+
 ## Run and build
 
 Install Node.js 22 or newer, then run in this folder:
