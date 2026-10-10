@@ -13,10 +13,22 @@ function applyTheme(state){
   window.uiSounds?.configure(state);
   document.body.classList.toggle('nxe-menu',!!state.menu);
   themeState=state;const image=document.getElementById('theme-wallpaper'),background=state.backgrounds.find(b=>b.id===state.selected);
+  const scene=state.scene || {},horizon=document.getElementById('nxe-horizon');
+  horizon.classList.toggle('hidden',!background || !scene.horizon);if(background&&scene.horizon){horizon.src=scene.horizon;horizon.onerror=()=>horizon.classList.add('hidden');}else horizon.removeAttribute('src');
+  document.body.classList.toggle('native-tray',!!scene.tray);
+  document.body.classList.toggle('native-marker',!!scene.marker);
+  if(scene.marker)document.documentElement.style.setProperty('--nxe-marker',`url("${scene.marker}")`);else document.documentElement.style.removeProperty('--nxe-marker');
+  if(scene.tray)document.documentElement.style.setProperty('--nxe-tray',`url("${scene.tray}")`);else document.documentElement.style.removeProperty('--nxe-tray');
+  const orb=document.querySelector('.dashboard-orb');orb.classList.toggle('native-orb',!!scene.orb);orb.querySelector('img').src=scene.orb || 'assets/xbox-orb.jpg';
+  orb.querySelector('img').onerror=()=>{orb.classList.remove('native-orb');orb.querySelector('img').src='assets/xbox-orb.jpg';orb.querySelector('img').onerror=null;};
+  const launchLogo=document.querySelector('#launch-overlay .brand-logo');launchLogo.classList.toggle('native-launch-orb',!!scene.orb);launchLogo.replaceChildren();
+  if(scene.orb){const logo=node('img');logo.alt='';logo.src=scene.orb;logo.onerror=()=>{launchLogo.classList.remove('native-launch-orb');launchLogo.textContent='X';};launchLogo.append(logo);}else launchLogo.textContent='X';
+  const adminButton=document.getElementById('admin-button');adminButton.replaceChildren();if(state.icons?.settings){const icon=node('img','admin-icon');icon.src=state.icons.settings;icon.alt='';icon.onerror=()=>icon.remove();adminButton.append(icon);}adminButton.append(document.createTextNode('Admin'));
   document.querySelectorAll('.controller-button').forEach(glyph=>{const key=glyph.getAttribute('aria-label'),url=state.buttons?.[key];glyph.classList.toggle('native-glyph',!!url);glyph.querySelector('img').src=url || 'assets/controller-buttons.jpg';});
   image.classList.toggle('hidden',!background);document.body.classList.toggle('nxe-theme',!!background);
   if(background){image.onerror=()=>{image.classList.add('hidden');document.body.classList.remove('nxe-theme');status('Imported background unavailable. Using Kratos theme.');};image.src=background.url;}
   else image.removeAttribute('src');
+  if(gamesList.length)renderCarousel();
 }
 function renderThemes(){
   mode='themes';selected=0;modal('NXE themes','D-pad: choose · A: import/apply · B: return to settings');
@@ -61,7 +73,9 @@ async function activateCover() {
 function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
 function fallback(title) {
   const card = node('div','fallback-card');
-  card.append(node('div','tile-rings'),node('div','disc-icon'),node('div','fallback-title',title)); return card;
+  if(!themeState.scene?.tray)card.append(node('div','tile-rings'));
+  if(themeState.scene?.disc){const image=node('img','original-disc');image.src=themeState.scene.disc;image.alt='';image.onerror=()=>image.replaceWith(node('div','disc-icon'));card.append(image);}else card.append(node('div','disc-icon'));
+  card.append(node('div','fallback-title',title)); return card;
 }
 function renderCarousel() {
   track.replaceChildren();
@@ -72,6 +86,10 @@ function renderCarousel() {
       card.style.removeProperty('--cover-ratio');
       const face=node('div','tile-face');face.append(art);
       card.replaceChildren(face);const reflection=face.cloneNode(true);reflection.classList.add('reflection');reflection.setAttribute('aria-hidden','true');card.append(reflection);
+      if(art.tagName==='IMG'&&themeState.scene?.coverShadows?.every(Boolean)){
+        const shadow=node('div','native-cover-shadow');shadow.setAttribute('aria-hidden','true');
+        themeState.scene.coverShadows.forEach((url,index)=>{const piece=node('img',`shadow-part-${index}`);piece.src=url;piece.alt='';piece.onerror=()=>{shadow.remove();card.classList.remove('native-shadow');};shadow.append(piece);});card.prepend(shadow);card.classList.add('native-shadow');
+      }else card.classList.remove('native-shadow');
     }
     if (game.cover_art_path && !game.uses_fallback_art) {
       const img = node('img'); img.alt = game.title;

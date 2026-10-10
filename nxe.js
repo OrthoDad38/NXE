@@ -85,7 +85,8 @@ async function importTheme(folder,userData,authorize=()=>{}){
   if(!manifest.backgrounds.length)throw new Error('No supported NXE wallpapers found');
   manifest.notes.push('Dashboard code is never executed. XUR strings/vectors are decoded; DATA timelines and runtime property binding are not fully translated.');
   authorize();await fs.writeFile(path.join(destination,'manifest.json'),JSON.stringify(manifest,null,2));
-  return {directory:destination,selected:manifest.backgrounds.find(b=>b.label.startsWith('Theme1'))?.id || manifest.backgrounds[0].id};
+  const original=Object.entries(manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/')&&a.source.endsWith('/defaultbackground.jpg'));
+  return {directory:destination,selected:original?.[0] || manifest.backgrounds.find(b=>b.label.startsWith('Theme1'))?.id || manifest.backgrounds[0].id};
 }
 async function loadTheme(config,userData){
   if(!config)return null;
@@ -103,6 +104,12 @@ function publicTheme(theme){
   const panel=Object.entries(theme.manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/') && a.source.endsWith('/BackgroundPanel.png'));
   const icons={};for(const [role,name] of Object.entries({settings:'ico_32x_console.png',games:'ico_32x_myGames.png'})){const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.endsWith('/'+name));if(entry)icons[role]=url(entry[0]);}
   const buttons={};for(const key of ['A','B','X','Y']){const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/') && a.source.endsWith(`/Legend_${key}.png`));if(entry)buttons[key]=url(entry[0]);}
-  return {backgrounds:theme.manifest.backgrounds.map(b=>({...b,url:url(b.id)})),selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes,sounds:Object.fromEntries(Object.entries(theme.manifest.sounds || {}).map(([role,id])=>[role,url(id)])),audio:theme.audio,menu:theme.manifest.menus?.['dashSysCslSet.xur']?{panel:panel?url(panel[0]):null,detailLabel:theme.manifest.menus['dashSysCslSet.xur'].strings.find(s=>s==='Current Setting') || 'Current Setting',source:theme.manifest.menus['dashSysCslSet.xur'].source,version:theme.manifest.menus['dashSysCslSet.xur'].version}:null,icons,buttons};
+  const scene={};for(const [role,name] of Object.entries({background:'defaultbackground.jpg',horizon:'Aura_Horizon.png',tray:'TrayBackground.JPG',disc:'icon_disc.png',orb:'xboxLogo.png',marker:'MobyChannelZero.png'})){
+    const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/')&&a.source.endsWith('/'+name));if(entry)scene[role]=url(entry[0]);
+  }
+  const shadowNames=['TopLeft','Top','TopRight','Left','Right','BottomLeft','Bottom','BottomRight'];scene.coverShadows=shadowNames.map(name=>{const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.endsWith(`/GameDetails_BoxArtDropShadow${name}.png`));return entry?url(entry[0]):null;});
+  const backgrounds=theme.manifest.backgrounds.map(b=>({...b,url:url(b.id)}));
+  if(scene.background&&!backgrounds.some(b=>b.url===scene.background))backgrounds.unshift({id:scene.background.split('/').at(-1),label:'Original NXE · Green dashboard',url:scene.background});
+  return {backgrounds,selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes,sounds:Object.fromEntries(Object.entries(theme.manifest.sounds || {}).map(([role,id])=>[role,url(id)])),audio:theme.audio,menu:theme.manifest.menus?.['dashSysCslSet.xur']?{panel:panel?url(panel[0]):null,detailLabel:theme.manifest.menus['dashSysCslSet.xur'].strings.find(s=>s==='Current Setting') || 'Current Setting',source:theme.manifest.menus['dashSysCslSet.xur'].source,version:theme.manifest.menus['dashSysCslSet.xur'].version}:null,icons,buttons,scene};
 }
 module.exports={parseXzp,importTheme,loadTheme,publicTheme};

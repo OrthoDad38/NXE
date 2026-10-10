@@ -39,3 +39,9 @@ XUIB STRN and VECT sections are parsed with bounds validation. The settings adap
 Next work: decode DATA object properties/timelines, measure animation fidelity, and map additional shell resources. Existing PIN controls and launcher-specific settings remain authoritative.
 
 1.2.1: The low-resolution BackgroundPanel bitmap remains in the local inventory, but its enlarged/cropped frame has been replaced by a smooth CSS gradient and rounded border. Headings and controls stay outside the scrolling/animated body. Existing theme imports do not need to be repeated.
+
+## Third milestone — original scene assets (1.3.0)
+
+Active recovered assets: defaultbackground.jpg, Aura_Horizon.png (1600×75 transparent glow), TrayBackground.JPG (420×320), icon_disc.png (200×277 with embedded reflection), MobyChannelZero.png, xboxLogo.png (300×196, CSS-clipped orb), ico_32x_console.png, Legend_A/B/X/Y.png, eight GameDetails_BoxArtDropShadow segments and the seven NXE sound cues. The original background appears as Original NXE · Green dashboard in the theme picker; existing 1.2 asset caches support it without reimport.
+
+Rendering still supplies the floor geometry and ripple rings, source-texture lighting, tile-content reflections, movement, typography and smooth menu frame. SphereHighlight is a specialized rendering texture, and Theme1/Theme2 prop layers are intended for different scenes; they have not been applied blindly to the game library. No low-resolution menu frame is stretched again. Asset dimensions, colors and composition were inspected before mapping.

@@ -99,7 +99,7 @@ else {
     }));
     handle('admin:theme-select',id=>serialized(async()=>{
       requireAdmin();
-      if(id!==null && !importedTheme?.manifest.backgrounds.some(b=>b.id===id))throw new Error('Unknown theme');
+      if(id!==null && !nxe.publicTheme(importedTheme).backgrounds.some(b=>b.id===id))throw new Error('Unknown theme');
       if(!importedTheme)return nxe.publicTheme(null);
       const config={directory:importedTheme.directory,selected:id,audio:importedTheme.audio};const next={...library,nxe_theme:config};
       await scanner.saveLibrary(libraryFile,next);library=next;importedTheme.selected=id;return nxe.publicTheme(importedTheme);
