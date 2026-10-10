@@ -37,3 +37,5 @@ Reimport now recovers 679 cached assets and indexes 5,403 combined entries. Seve
 XUIB STRN and VECT sections are parsed with bounds validation. The settings adapter uses original BackgroundPanel.png and Legend_A/B/X/Y.png, the Current Setting string, and the list/detail/select/back structure found in the original resources. DATA timelines/object bindings remain unparsed. This is partial menu translation, not execution of the console UI engine or a complete XUR interpreter.
 
 Next work: decode DATA object properties/timelines, measure animation fidelity, and map additional shell resources. Existing PIN controls and launcher-specific settings remain authoritative.
+
+1.2.1: The low-resolution BackgroundPanel bitmap remains in the local inventory, but its enlarged/cropped frame has been replaced by a smooth CSS gradient and rounded border. Headings and controls stay outside the scrolling/animated body. Existing theme imports do not need to be repeated.

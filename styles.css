@@ -108,8 +108,13 @@ button,.entry,.entry-input { border-radius:10px; }
 #theme-wallpaper { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; pointer-events:none; }
 .nxe-theme::before { display:none; }
 .nxe-theme::after { background:radial-gradient(ellipse at 29% 35%,#e0edf0eb 0%,#9daeb5e0 38%,#566369eb 73%,#293638f5 100%); }
-/* Original NXE BackgroundPanel texture, translated as a stretchable frame. */
-.nxe-menu .panel { background-color:transparent; background-image:var(--nxe-menu-panel); background-size:120% 120%; background-position:center; border:1px solid #89a1b050; border-radius:16px; }
+/* Render the NXE frame at display resolution instead of enlarging its tiny bitmap. */
+.nxe-menu .panel { background:linear-gradient(135deg,#5e737c,#42535f 48%,#293744); border:1px solid #a2b2bc66; border-radius:16px; box-shadow:inset 0 1px 1px #d4e0e438,0 8px 28px #17232c55; }
+.panel { overflow:hidden; }
+.panel-scroll { width:100%; height:100%; overflow:auto; scrollbar-width:thin; scrollbar-color:#a4b5be #253b48; scrollbar-gutter:stable; padding-right:8px; }
+.panel-scroll::-webkit-scrollbar { width:8px; }
+.panel-scroll::-webkit-scrollbar-track { background:#253b48; border-radius:8px; }
+.panel-scroll::-webkit-scrollbar-thumb { background:#a4b5be; border-radius:8px; }
 .nxe-menu .settings-details { position:sticky; top:0; align-self:start; }
 .nxe-menu .detail-label { font-weight:500; }
 .nxe-menu .cover-options { gap:0; }

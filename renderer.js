@@ -12,7 +12,6 @@ let themeState={backgrounds:[],selected:null};
 function applyTheme(state){
   window.uiSounds?.configure(state);
   document.body.classList.toggle('nxe-menu',!!state.menu);
-  if(state.menu?.panel)document.documentElement.style.setProperty('--nxe-menu-panel',`url("${state.menu.panel}")`);else document.documentElement.style.removeProperty('--nxe-menu-panel');
   themeState=state;const image=document.getElementById('theme-wallpaper'),background=state.backgrounds.find(b=>b.id===state.selected);
   document.querySelectorAll('.controller-button').forEach(glyph=>{const key=glyph.getAttribute('aria-label'),url=state.buttons?.[key];glyph.classList.toggle('native-glyph',!!url);glyph.querySelector('img').src=url || 'assets/controller-buttons.jpg';});
   image.classList.toggle('hidden',!background);document.body.classList.toggle('nxe-theme',!!background);

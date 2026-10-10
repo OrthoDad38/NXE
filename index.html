@@ -47,10 +47,10 @@
     <div><div class="brand-logo">X</div><h1 id="launch-title"></h1><p>Starting your game…</p></div>
   </div>
   <div id="overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button id="close-admin" type="button" class="close-admin" aria-label="Close administrator panel">Close</button>
+    <h1 id="modal-title"></h1><p id="modal-help"></p>
     <section class="panel">
-      <button id="close-admin" type="button" class="close-admin" aria-label="Close administrator panel">Close</button>
-      <h1 id="modal-title"></h1><p id="modal-help"></p>
-      <div id="modal-content"></div><div id="modal-error" role="alert"></div>
+      <div class="panel-scroll"><div id="modal-content"></div><div id="modal-error" role="alert"></div></div>
     </section>
   </div>
   <script src="renderer.js"></script>
