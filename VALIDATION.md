@@ -36,3 +36,5 @@ Version 1.3.1 separates NXE tile and artwork corners: the outer tile/face stays 
 Version 1.3.2 fixes missing cover reflections: image src is set before cloning the tile face, so both image elements load the artwork. The floor reflection uses 22% opacity and a longer fade. The Electron fixture decoded the reflected image and checked that its URL matches the visible cover; a permanent renderer regression test checks source retention. All 18 tests pass.
 
 Version 1.3.3 matches the outer tiles and faces to the cover artwork with a shared 12px corner radius. Cover images inherit the face radius, including reflected artwork. The card container remains unclipped so floor reflections and native shadows stay visible.
+
+Version 1.3.4 removes the recovered eight-piece square cover shadow from rendering. Its bitmap corners produced the square border visible behind rounded art. The existing CSS shadow now follows the 12px rounded card silhouette; source assets remain available in the local theme cache. Reflections remain unclipped.

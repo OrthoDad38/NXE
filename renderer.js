@@ -86,10 +86,8 @@ function renderCarousel() {
       card.style.removeProperty('--cover-ratio');
       const face=node('div','tile-face');face.append(art);
       card.replaceChildren(face);const reflection=face.cloneNode(true);reflection.classList.add('reflection');reflection.setAttribute('aria-hidden','true');card.append(reflection);
-      if(art.tagName==='IMG'&&themeState.scene?.coverShadows?.every(Boolean)){
-        const shadow=node('div','native-cover-shadow');shadow.setAttribute('aria-hidden','true');
-        themeState.scene.coverShadows.forEach((url,index)=>{const piece=node('img',`shadow-part-${index}`);piece.src=url;piece.alt='';piece.onerror=()=>{shadow.remove();card.classList.remove('native-shadow');};shadow.append(piece);});card.prepend(shadow);card.classList.add('native-shadow');
-      }else card.classList.remove('native-shadow');
+      // The recovered shadow bitmaps include square corner borders. Use the
+      // card's rounded CSS shadow so they cannot show behind rounded artwork.
     }
     if (game.cover_art_path && !game.uses_fallback_art) {
       const img = node('img'); img.alt = game.title;
