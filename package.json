@@ -1,9 +1,9 @@
 {
-  "name": "project-kratos",
-  "version": "1.4.1",
-  "description": "Controller-first Xenia kiosk launcher",
+  "name": "nxe-launcher",
+  "version": "1.5.0",
+  "description": "NXE — New Xenia Experience, a controller-first Xenia kiosk launcher",
   "main": "main.js",
-  "author": "Project Kratos",
+  "author": "NXE",
   "homepage": "https://github.com/OrthoDad38/project-kratos",
   "license": "MIT",
   "scripts": {
@@ -25,7 +25,7 @@
   },
   "build": {
     "appId": "org.projectkratos.launcher",
-    "productName": "Project Kratos",
+    "productName": "NXE",
     "directories": {
       "output": "dist"
     },
@@ -33,6 +33,7 @@
       "main.js",
       "preload.js",
       "scanner.js",
+      "storage.js",
       "covers.js",
       "nxe.js",
       "nxe-resources.js",
@@ -53,10 +54,10 @@
     "nsis": {
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Project Kratos"
+      "shortcutName": "NXE"
     },
     "linux": {
-      "maintainer": "Project Kratos",
+      "maintainer": "NXE",
       "target": [
         "AppImage",
         "deb"

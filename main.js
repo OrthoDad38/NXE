@@ -7,6 +7,9 @@ const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
 const covers = require('./covers');
 const nxe = require('./nxe');
+const {selectUserData}=require('./storage');
+app.setName('NXE');
+app.setPath('userData',selectUserData(app.getPath('appData'),app.getPath('userData'),app.isPackaged));
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 let importedTheme=null;
 const coverService = covers.createService((...args) => net.fetch(...args));
@@ -24,7 +27,7 @@ function shortcuts() {
     try { globalShortcut.register('Alt+Tab', () => {}); } catch { /* Desktop may reserve it. */ }
   }
   if (!shortcutNoticeShown) {
-    console.info('[Kratos] Kiosk active. OS task switching requires desktop/account restrictions.');
+    console.info('[NXE] Kiosk active. OS task switching requires desktop/account restrictions.');
     shortcutNoticeShown = true;
   }
 }
@@ -70,7 +73,7 @@ else {
     libraryFile = path.join(app.getPath('userData'), 'library.json');
     library = await scanner.loadLibrary(libraryFile);
     try { importedTheme=await nxe.loadTheme(library.nxe_theme,app.getPath('userData')); }
-    catch(error) { console.warn(`[Kratos] Theme fallback: ${error.message}`);importedTheme=await nxe.loadTheme(null,app.getPath('userData')); }
+    catch(error) { console.warn(`[NXE] Theme fallback: ${error.message}`);importedTheme=await nxe.loadTheme(null,app.getPath('userData')); }
     const coverDirectory = path.join(app.getPath('userData'), 'covers');
     let scanError = '';
     try { library.games = await covers.applyCached(await scanner.scanDirectory(library.rom_directory), coverDirectory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
@@ -192,12 +195,12 @@ else {
       if (input.alt || input.meta || (input.control && !editShortcut) || ['F11', 'F12'].includes(input.key)) event.preventDefault();
     });
     win.webContents.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
-      if (isMainFrame) console.error(`[Kratos] Window failed to load (${code}): ${description}`);
+      if (isMainFrame) console.error(`[NXE] Window failed to load (${code}): ${description}`);
     });
-    win.webContents.on('render-process-gone', (_event, details) => console.error(`[Kratos] Renderer stopped: ${details.reason} (exit ${details.exitCode})`));
+    win.webContents.on('render-process-gone', (_event, details) => console.error(`[NXE] Renderer stopped: ${details.reason} (exit ${details.exitCode})`));
     win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
     await win.loadFile(path.join(__dirname, 'index.html')); shortcuts();
-    console.info('[Kratos] Dashboard loaded.');
+    console.info('[NXE] Dashboard loaded.');
   }).catch(error => { console.error(error); allowQuit = true; app.quit(); });
 }
 app.on('before-quit', event => { if (win && !allowQuit) event.preventDefault(); });

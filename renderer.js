@@ -26,7 +26,7 @@ function applyTheme(state){
   const adminButton=document.getElementById('admin-button');adminButton.replaceChildren();if(state.icons?.settings){const icon=node('img','admin-icon');icon.src=state.icons.settings;icon.alt='';icon.onerror=()=>icon.remove();adminButton.append(icon);}adminButton.append(document.createTextNode('Admin'));
   document.querySelectorAll('.controller-button').forEach(glyph=>{const key=glyph.getAttribute('aria-label'),url=state.buttons?.[key];glyph.classList.toggle('native-glyph',!!url);glyph.querySelector('img').src=url || 'assets/controller-buttons.jpg';});
   image.classList.toggle('hidden',!background);document.body.classList.toggle('nxe-theme',!!background);
-  if(background){image.onerror=()=>{image.classList.add('hidden');document.body.classList.remove('nxe-theme');status('Imported background unavailable. Using Kratos theme.');};image.src=background.url;}
+  if(background){image.onerror=()=>{image.classList.add('hidden');document.body.classList.remove('nxe-theme');status('Imported background unavailable. Using the fallback background.');};image.src=background.url;}
   else image.removeAttribute('src');
   if(gamesList.length)renderCarousel();
 }
@@ -169,11 +169,11 @@ function renderSettings() {
   shell.append(list,details);content.append(shell);updateSettingsDetails();
 }
 function updateSettingsDetails() {
-  const description=['Choose the folder containing your Xbox 360 games.','Choose the Xenia Canary executable.','Linux: choose the Wine or Proton runner. Windows launches Xenia directly.','Linux runner arguments, as a JSON array.','Set a new administrator PIN using 4–8 digits.','Open the native folder picker. The chosen path is saved when you select Save and rescan.','Open the native executable picker. The chosen path is saved when you select Save and rescan.','Save these settings and refresh your game collection.','Close Project Kratos and return to the desktop.','Return to Game Library without saving pending changes.'];
+  const description=['Choose the folder containing your Xbox 360 games.','Choose the Xenia Canary executable.','Linux: choose the Wine or Proton runner. Windows launches Xenia directly.','Linux runner arguments, as a JSON array.','Set a new administrator PIN using 4–8 digits.','Open the native folder picker. The chosen path is saved when you select Save and rescan.','Open the native executable picker. The chosen path is saved when you select Save and rescan.','Save these settings and refresh your game collection.','Close NXE and return to the desktop.','Return to Game Library without saving pending changes.'];
   const field=fields[selected]?.[0];
   const value=content.querySelector('.setting-value');
   if(!value)return;
-  value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
+  value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'NXE';
   const descriptionIndex=selected===fields.length+3?9:selected===fields.length+7?8:selected;
   content.querySelector('.setting-description').textContent=selected===fields.length+6?'Toggle PIN protection immediately. When off, Start or Admin opens settings directly, including Exit to desktop. Turning protection back on uses the saved PIN.':selected===fields.length+5?'Choose the original green NXE dashboard or Wallpaper 1–9, and adjust sound volume or mute.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');

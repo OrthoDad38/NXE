@@ -15,7 +15,7 @@ async function mainHarness(withTheme=false) {
   let now = 1000000, window;
   let dialogResult = { canceled: false, filePaths: ['C:\\Games\\Xbox360'] };
   const electron = {
-    app: { commandLine:{appendSwitch(){}},requestSingleInstanceLock: () => true, on() {}, whenReady: () => Promise.resolve(), getPath: () => __dirname, quit() {} },
+    app: { setName(){},setPath(){},commandLine:{appendSwitch(){}},requestSingleInstanceLock: () => true, on() {}, whenReady: () => Promise.resolve(), getPath: () => __dirname, quit() {} },
     ipcMain: { handle: (name, fn) => handlers.set(name, fn) },
     globalShortcut: { isRegistered: () => false, register: () => { throw new Error('Unexpected registration on Windows'); }, unregisterAll() {} },
     protocol: { registerSchemesAsPrivileged() {}, handle() {} }, net: {},

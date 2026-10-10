@@ -1,4 +1,6 @@
-# Project Kratos
+# NXE — New Xenia Experience
+
+**NXE** means **New Xenia Experience** (formerly Project Kratos). The GitHub repository URL remains unchanged. Close the older launcher before updating or installing NXE.
 
 A fullscreen, controller-first Electron launcher for Xenia Canary on Windows 10/11 and Linux Mint. The built-in NXE theme includes the recovered green dashboard background, nine additional wallpapers, original scene artwork, button legends, and seven navigation/select/back/menu sounds. No dashboard import, separate theme download, or internet connection is required to use them. Games and Xenia are not included.
 
@@ -6,7 +8,7 @@ Game Library uses rounded cover tiles with the entire cover visible, no title ov
 
 ## Windows: install without a terminal
 
-Run the **Project Kratos Setup VERSION.exe** installer supplied with the build. It includes Electron, the launcher, NXE assets, and the sound conversion tool. It creates desktop and Start menu shortcuts. Open Project Kratos from either shortcut; Node.js and npm are not required on the installed machine. Xenia Canary and your games must be supplied separately.
+Run the **NXE Setup VERSION.exe** installer supplied with the build. It includes Electron, the launcher, NXE assets, and the sound conversion tool. It creates desktop and Start menu shortcuts. Open NXE from either shortcut; Node.js and npm are not required on the installed machine. Xenia Canary and your games must be supplied separately.
 
 For maintainers, `npm run build:windows` creates the installer in `dist/`. Installers are currently unsigned; code signing is needed for a polished public release. Builds are not automatically uploaded to GitHub Releases.
 
@@ -32,27 +34,27 @@ npm run build
 
 ## Linux Mint installation and running
 
-Use a 64-bit Intel/AMD Mint desktop session. Kratos runs natively on Linux; its Windows Xenia executable runs through Wine or a configured Proton runner. Wine/Proton and game compatibility depend on your GPU, drivers, emulator version, and game. Linux Mint runtime and package installation still need testing on a physical Mint machine; the Windows build does not establish Linux compatibility.
+Use a 64-bit Intel/AMD Mint desktop session. NXE runs natively on Linux; its Windows Xenia executable runs through Wine or a configured Proton runner. Wine/Proton and game compatibility depend on your GPU, drivers, emulator version, and game. Linux Mint runtime and package installation still need testing on a physical Mint machine; the Windows build does not establish Linux compatibility.
 
 ### Install from a Debian package (preferred for Mint)
 
-Obtain the `project-kratos_VERSION_amd64.deb` built on Linux. In the file manager, double-click it, open the package installer, and select **Install Package**. Launch **Project Kratos** from Mint's application menu afterward. Node.js and npm are not needed. Use Mint Software Manager to install **Wine** separately before launching games.
+Obtain the `nxe-launcher_VERSION_amd64.deb` built on Linux. In the file manager, double-click it, open the package installer, and select **Install Package**. Launch **NXE** from Mint's application menu afterward. Node.js and npm are not needed. Use Mint Software Manager to install **Wine** separately before launching games.
 
 The terminal alternative, from the directory containing that package, is:
 
 ```sh
-sudo apt install ./project-kratos_VERSION_amd64.deb
+sudo apt install ./nxe-launcher_VERSION_amd64.deb
 ```
 
-Replace VERSION with the actual filename. `apt` resolves the package's desktop library dependencies. Do not run Kratos itself with sudo. The Debian target installs an application-menu entry and uses electron-builder's sandbox setup. See the [electron-builder Linux documentation](https://www.electron.build/linux/) for packaging details.
+Replace VERSION with the actual filename. `apt` resolves the package's desktop library dependencies. Do not run NXE itself with sudo. The Debian target installs an application-menu entry and uses electron-builder's sandbox setup. See the [electron-builder Linux documentation](https://www.electron.build/linux/) for packaging details.
 
 ### Portable AppImage
 
-Obtain the Linux-built **Project Kratos-VERSION.AppImage**. In the file manager, open **Properties → Permissions**, enable permission to execute it, and double-click the file. AppImages do not install a menu entry automatically. The terminal alternative is:
+Obtain the Linux-built **NXE-VERSION.AppImage**. In the file manager, open **Properties → Permissions**, enable permission to execute it, and double-click the file. AppImages do not install a menu entry automatically. The terminal alternative is:
 
 ```sh
-chmod +x "Project Kratos-VERSION.AppImage"
-"./Project Kratos-VERSION.AppImage"
+chmod +x "NXE-VERSION.AppImage"
+"./NXE-VERSION.AppImage"
 ```
 
 If it reports a missing FUSE library, install the compatibility library through Software Manager or these commands:
@@ -64,7 +66,7 @@ sudo apt install libfuse2t64
 sudo apt install libfuse2
 ```
 
-These package names and the extract-and-run fallback are documented by [AppImage](https://docs.appimage.org/user-guide/troubleshooting/fuse.html). If FUSE is unavailable, try `"./Project Kratos-VERSION.AppImage" --appimage-extract-and-run`. For sandbox/AppArmor errors, prefer the installed Debian package and inspect the error on your system; do not launch with `--no-sandbox` or globally disable AppArmor.
+These package names and the extract-and-run fallback are documented by [AppImage](https://docs.appimage.org/user-guide/troubleshooting/fuse.html). If FUSE is unavailable, try `"./NXE-VERSION.AppImage" --appimage-extract-and-run`. For sandbox/AppArmor errors, prefer the installed Debian package and inspect the error on your system; do not launch with `--no-sandbox` or globally disable AppArmor.
 
 ### Run or build from source on Mint
 
@@ -89,11 +91,11 @@ The configured outputs are AppImage and Debian packages under `dist/`. First bui
 
 ### Configure Xenia on Mint
 
-1. Put Xenia Canary in a folder you can write to, such as `/home/YOUR_USER/Emulators/Xenia`. Install compatible graphics drivers and verify the emulator independently before configuring Kratos. You can test it with `wine /home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
-2. Launch Kratos, press controller **Start**, and enter the initial PIN **1234**.
+1. Put Xenia Canary in a folder you can write to, such as `/home/YOUR_USER/Emulators/Xenia`. Install compatible graphics drivers and verify the emulator independently before configuring NXE. You can test it with `wine /home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
+2. Launch NXE, press controller **Start**, and enter the initial PIN **1234**.
 3. Choose **Browse ROM folder…** and **Browse Xenia executable…**. Select Linux paths, such as `/home/YOUR_USER/Games/Xbox360` and `/home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
 4. Leave **Linux runner** as `wine` and **Runner arguments** as `[]` for ordinary Wine. Save and rescan.
-5. Launch a game with A. When the emulator process exits, Kratos restores its fullscreen window and controller focus.
+5. Launch a game with A. When the emulator process exits, NXE restores its fullscreen window and controller focus.
 
 For Proton, select the absolute Proton script path as runner and set runner arguments to `["run"]`. Your launch environment must supply `STEAM_COMPAT_DATA_PATH` and `STEAM_COMPAT_CLIENT_INSTALL_PATH` if required by that Proton installation. A runner must remain alive until Xenia exits; wrappers that detach cannot return reliably to the kiosk. Wine prefixes are inherited from the launch environment. The app does not install Wine, Proton, graphics drivers, or Xenia.
 
@@ -112,13 +114,13 @@ PIN protection starts enabled, including for existing libraries without the new 
 
 ## Built-in NXE theme, wallpapers, and sound
 
-Fresh installations automatically use **Original NXE · Green dashboard**. Existing wallpaper, audio, and imported-theme preferences are retained when available. If an older import is missing, Kratos falls back to the built-in NXE theme.
+Fresh installations automatically use **Original NXE · Green dashboard**. Existing wallpaper, audio, and imported-theme preferences are retained when available. If an older import is missing, NXE falls back to the built-in NXE theme.
 
 Admin → **NXE themes** offers **Original NXE · Green dashboard**, **Wallpaper 1** through **Wallpaper 9**, sound volume (0/25/50/75/100%), mute, and Test sound. Theme/audio changes save immediately. The seven cues are left, right, select, back, open, close, and focus. Playback failures do not block navigation.
 
 All 679 recovered image/audio assets and resource metadata are included under `assets/nxe/`; no Xbox executable, account/profile, ROM, or emulator binary is included. Bundled sound files are already converted to PCM WAV, so ordinary playback does not need conversion or access to the original download folder. Paths in saved built-in preferences use the portable `builtin` identifier.
 
-The menu no longer shows theme import, built-in reset, or the earlier Kratos background options. Existing imported caches and wallpaper preferences still load; asset IDs are unchanged by renaming the wallpapers. The resource importer remains in the codebase for compatibility. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
+The menu no longer shows theme import, built-in reset, or the earlier NXE background options. Existing imported caches and wallpaper preferences still load; asset IDs are unchanged by renaming the wallpapers. The resource importer remains in the codebase for compatibility. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
 
 ## Games and cover artwork
 
@@ -128,7 +130,7 @@ Admin → **Download missing covers** searches the [x360db archive](https://gith
 
 ## Settings, kiosk behavior, and security
 
-Settings/library/cache live in Electron's userData folder, normally `%APPDATA%/Project Kratos` or `~/.config/Project Kratos` (development may use `project-kratos`). PINs use salted scrypt hashes. Legacy plaintext credentials migrate automatically. A malformed library is preserved and produces an error rather than silently resetting protection.
+Fresh installs use `%APPDATA%/NXE` on Windows or `~/.config/NXE` on Linux. Existing installations automatically reuse their `project-kratos` or `Project Kratos` data folder when it contains library.json, preserving the saved PIN, paths, covers, imported assets, and preferences. Explicit userData overrides remain supported. PINs use salted scrypt hashes. Legacy plaintext credentials migrate automatically. A malformed library is preserved and produces an error rather than silently resetting protection.
 
 The launcher is frameless, fullscreen, and sandboxed with context isolation, no renderer Node access, controlled local artwork URLs, and a restrictive CSP. It stays fullscreen underneath Xenia during startup, releases game-interfering shortcuts, and restores focus on process termination or launch failure. Process commands use argument arrays with `shell: false`.
 

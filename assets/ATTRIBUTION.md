@@ -2,7 +2,7 @@
 
 ## Current UI artwork supplied by the user
 
-`xbox-orb.jpg` is an unchanged copy of the user's `xbox.jpg`; `controller-buttons.jpg` is an unchanged copy of the user's `buttons.jpg`. Both were supplied for inclusion in Project Kratos on October 9, 2026. Their original creator/source was not specified. CSS selects circular regions of these images; the JPEG files themselves have not been edited. These images replace the older SVG logo in the visible UI.
+`xbox-orb.jpg` is an unchanged copy of the user's `xbox.jpg`; `controller-buttons.jpg` is an unchanged copy of the user's `buttons.jpg`. Both were supplied for inclusion in NXE on October 9, 2026. Their original creator/source was not specified. CSS selects circular regions of these images; the JPEG files themselves have not been edited. These images replace the older SVG logo in the visible UI.
 
 ## Earlier downloaded asset
 
@@ -16,7 +16,7 @@ This copy uses a square `0 0 852 852` viewBox to show the sphere without the acc
 
 https://creativecommons.org/licenses/by-sa/4.0/
 
-Xbox trademarks belong to Microsoft. Project Kratos is an independent launcher.
+Xbox trademarks belong to Microsoft. NXE is an independent launcher.
 
 ## Bundled NXE assets (1.4.0)
 

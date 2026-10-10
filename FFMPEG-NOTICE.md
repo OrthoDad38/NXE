@@ -1,6 +1,6 @@
 # FFmpeg notice
 
-Project Kratos invokes FFmpeg as a separate local process to convert user-supplied XMA interface sounds into PCM WAV files. It is supplied by ffmpeg-static 5.3.0; Kratos's source remains MIT licensed. FFmpeg and ffmpeg-static retain their own licenses.
+NXE invokes FFmpeg as a separate local process to convert user-supplied XMA interface sounds into PCM WAV files. It is supplied by ffmpeg-static 5.3.0; NXE's source remains MIT licensed. FFmpeg and ffmpeg-static retain their own licenses.
 
 The Windows x64 binary supplied for this build reports FFmpeg 6.1.1, GPL v3, and source revision e38092ef93. The package contains ffmpeg.exe.LICENSE and ffmpeg.exe.README alongside the unpacked executable. Consult those files for build configuration and component licensing.
 
