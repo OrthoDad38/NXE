@@ -74,3 +74,10 @@ The earlier `OS did not grant shortcut` and `Unsupported shortcut: Super` messag
 - `scanner.test.js`: filesystem integration tests and credential checks using Node's built-in test runner.
 
 Before distribution, validate Windows and Mint builds, controller connect/disconnect and held buttons, empty/missing libraries, artwork failures, paths with spaces, bad PIN throttling, settings expiry, launch errors, normal emulator exit, Wine/Proton lifecycle and OS kiosk policies. Runtime tests on each target host and signed release builds are required before calling this production-ready.
+
+## Download missing covers
+Unlock Administrator settings with your PIN, then choose **Download missing covers**. Confirm the matching Xbox 360 title for each game, or choose Skip. D-pad/arrow keys select; A/Enter downloads; B/Escape returns to settings. Mouse and Tab work too. Save and rescan first if the ROM directory changed: downloads operate on the saved library.
+
+Artwork is fetched from the [x360db archive](https://github.com/xenia-manager/x360db), without an API key. Coverage varies; unavailable artwork leaves the fallback tile intact. Network errors can be retried or skipped. The five-minute admin session still applies; reopen settings with your PIN if it expires.
+
+Covers are cached under the application's userData `covers` directory and reapplied on startup/rescan. Local PNG/JPG artwork beside the ROM takes priority. Existing covers are never replaced by this action. The entire cover remains visible using `object-fit: contain`. Requests go through the main process to fixed archive URLs with timeouts, size limits, and JPEG signature checks. No remote URLs or filesystem paths are accepted from the renderer. Artwork remains the property of its respective owners; the archive supplies it for identification and archival purposes.

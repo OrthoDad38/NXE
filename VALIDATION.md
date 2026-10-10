@@ -17,3 +17,5 @@ Electron references used for implementation:
 - https://www.electronjs.org/docs/latest/api/global-shortcut
 - https://www.electronjs.org/docs/latest/api/context-bridge
 - https://www.electronjs.org/docs/latest/tutorial/security
+
+Version 1.0.7: admin-only missing-cover review and download using x360db. Verified live catalog lookup and JPEG download for Viva Piñata. Regression coverage includes ranking, accent normalization, invalid selections/nonimages, cached cover rescan, local-art precedence, and unauthorized cover IPC rejection. Hidden Electron fixture checks review queue, download/advance, B return, and whole-cover contain layout.

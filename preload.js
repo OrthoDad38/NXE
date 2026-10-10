@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSettings: () => ipcRenderer.invoke('admin:settings'),
   browseLocation: kind => ipcRenderer.invoke('admin:browse', kind),
   saveSettings: settings => ipcRenderer.invoke('admin:save', settings),
+  searchCovers: id => ipcRenderer.invoke('admin:cover-search', id),
+  downloadCover: (id, candidate) => ipcRenderer.invoke('admin:cover-download', id, candidate),
   exitToDesktop: () => ipcRenderer.invoke('admin:exit'),
   onGameState: callback => {
     const listener = (_event, state) => callback(state);

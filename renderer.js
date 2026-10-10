@@ -7,6 +7,36 @@ const content = document.getElementById('modal-content');
 const errorDisplay = document.getElementById('modal-error');
 const pinKeys = ['1','2','3','4','5','6','7','8','9','Back','0','Enter'];
 const fields = [['rom_directory','ROM directory'],['xenia_executable','Xenia executable'],['runner','Linux runner'],['runner_args','Runner arguments (JSON array)'],['new_pin','New PIN (4–8 digits)']];
+let coverQueue = [], coverMatches = [], coverPosition = 0;
+function returnSettings() { mode='settings';selected=fields.length+5;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
+async function showCoverMatch() {
+  mode='covers';selected=0;busy=true;
+  const game=coverQueue[coverPosition];
+  modal('Download missing covers','D-pad: choose matching game · A: download · B: return to settings');
+  content.replaceChildren(node('p','cover-summary',game ? `Searching for ${game.title}…` : 'All missing covers reviewed.'));
+  try {
+    coverMatches=game ? await api.searchCovers(game.id) : [];
+    content.replaceChildren(node('p','cover-summary',game ? `${coverPosition+1} of ${coverQueue.length}: ${game.title}` : 'All missing covers reviewed.'));
+    if(game) content.append(node('p','',coverMatches.length ? 'Confirm the matching title to download its box art.' : 'No matching cover found. Skip this game and add a local cover manually.'));
+    buttons(game ? [...coverMatches.map(g=>`${g.title} (${g.id})`),'Skip this game','Return to settings'] : ['Return to settings'],'cover-options',activate);
+  } catch(error) { content.replaceChildren();buttons(['Retry','Skip this game','Return to settings'],'cover-options',activate);coverMatches=null;errorDisplay.textContent=error.message; }
+  finally { busy=false; }
+}
+async function startCoverDownloads() { coverQueue=gamesList.filter(g=>g.uses_fallback_art);coverPosition=0;await showCoverMatch(); }
+async function activateCover() {
+  if(!coverQueue[coverPosition])return returnSettings();
+  if(coverMatches===null){if(selected===0)return showCoverMatch();if(selected===2)return returnSettings();}
+  else {
+    if(selected===coverMatches.length+1)return returnSettings();
+    if(selected<coverMatches.length){
+      busy=true;errorDisplay.textContent='Downloading cover…';
+      try { gamesList=await api.downloadCover(coverQueue[coverPosition].id,coverMatches[selected].id);renderCarousel(); }
+      catch(error){errorDisplay.textContent=error.message;return;}
+      finally { busy=false; }
+    }
+  }
+  coverPosition++;await showCoverMatch();
+}
 function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
 function fallback(title) {
   const card = node('div','fallback-card');
@@ -81,7 +111,7 @@ function openPin() { if(busy) return; mode='pin';pin='';selected=0;modal('Admini
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
 function closeModal() { mode='library';pin='';editText='';settings={};document.body.classList.remove('modal-open');document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Exit to desktop','Return to games'],'settings',activate);
+  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Exit to desktop','Return to games','Download missing covers'],'settings',activate);
   const list=content.firstElementChild;list.prepend(node('div','settings-highlight'));
   const shell=node('div','settings-shell'),details=node('div','settings-details');
   details.append(node('div','detail-label','Current setting'),node('div','setting-value'),node('p','setting-description'));
@@ -93,7 +123,7 @@ function updateSettingsDetails() {
   const value=content.querySelector('.setting-value');
   if(!value)return;
   value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
-  content.querySelector('.setting-description').textContent=description[selected] || '';
+  content.querySelector('.setting-description').textContent=description[selected] || 'Find box art for games in the saved library. Confirm each suggested title or skip it. Internet is needed only to find and download covers; saved covers work offline. Save and rescan first if you changed the ROM directory.';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
   if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
@@ -122,6 +152,7 @@ async function browseLocation(kind) {
 }
 async function activate() {
   if(busy) return;
+  if(mode==='covers') return activateCover();
   if(mode==='pin') {
     const key=pinKeys[selected];if(key==='Back')pin=pin.slice(0,-1);else if(key==='Enter')return submitPin();else if(pin.length<8)pin+=key;renderPin();
   } else if(mode==='settings') {
@@ -132,6 +163,7 @@ async function activate() {
       busy=true;
       try { const args=JSON.parse(settings.runner_args || '[]');gamesList=await api.saveSettings({...settings,runner_args:args});renderCarousel();status('Settings saved. Library refreshed.');closeModal(); } catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
     } else if(selected===fields.length+3){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    else if(selected===fields.length+5)return startCoverDownloads();
     else closeModal();
   } else if(mode==='keyboard') {
     const key=keyboardKeys()[selected];if(key==='Done')return finishEdit();if(key==='Back')editText=editText.slice(0,-1);else if(key==='Case')caps=!caps;else if(editText.length<4096)editText+=key;renderKeyboard();
@@ -146,7 +178,7 @@ function finishEdit() { settings[editKey]=editText;editText='';mode='settings';s
 function input(action) {
   if(busy)return;
   if(mode==='library'){if(action==='left')selectNext(-1);else if(action==='right')selectNext(1);else if(action==='lb')selectNext(-5);else if(action==='rb')selectNext(5);else if(action==='a')launchCurrentGame();return;}
-  if(action==='b'){if(mode==='keyboard')cancelEdit();else closeModal();return;}
+  if(action==='b'){if(mode==='keyboard')cancelEdit();else if(mode==='covers')returnSettings();else closeModal();return;}
   if(action==='a')return activate();
   if(action==='x'){if(mode==='pin'){pin=pin.slice(0,-1);renderPin();}else if(mode==='keyboard'){editText=editText.slice(0,-1);renderKeyboard();}return;}
   if(action==='y'){if(mode==='pin')submitPin();else if(mode==='keyboard')finishEdit();return;}

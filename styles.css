@@ -94,3 +94,6 @@ button:focus-visible,input:focus-visible { outline:3px solid #79a800; outline-of
 @media(max-height:650px) { .settings button { padding:5px 9px; } }
 @media(max-width:750px) { .panel { left:8vw; width:84vw; }.settings-details { font-size:14px; } }
 @media(prefers-reduced-motion:reduce) { .game-card,.carousel-stage,.settings-highlight { transition:none; } }
+.cover-options { display:grid; gap:5px; max-height:42vh; overflow-y:auto; margin-top:12px; }
+.cover-options button { text-align:left; font-size:clamp(13px,1.4vw,20px); padding:6px 10px; }
+.cover-summary { margin-bottom:10px; font-size:clamp(16px,1.8vw,25px); }

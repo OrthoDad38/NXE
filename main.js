@@ -5,6 +5,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
+const covers = require('./covers');
+const coverService = covers.createService((...args) => net.fetch(...args));
 protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
 let queue = Promise.resolve();
@@ -64,8 +66,9 @@ else {
   app.whenReady().then(async () => {
     libraryFile = path.join(app.getPath('userData'), 'library.json');
     library = await scanner.loadLibrary(libraryFile);
+    const coverDirectory = path.join(app.getPath('userData'), 'covers');
     let scanError = '';
-    try { library.games = await scanner.scanDirectory(library.rom_directory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
+    try { library.games = await covers.applyCached(await scanner.scanDirectory(library.rom_directory), coverDirectory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
     protocol.handle('kratos-art', request => {
       const url = new URL(request.url);
       const game = library.games.find(g => g.id === url.pathname.slice(1));
@@ -80,6 +83,26 @@ else {
       attempts = 0; adminUntil = Date.now() + 300000; return true;
     });
     handle('admin:lock', () => { adminUntil = 0; });
+    handle('admin:cover-search', async id => {
+      requireAdmin();
+      const game = library.games.find(g => g.id === id && g.uses_fallback_art);
+      if (!game) throw new Error('Game no longer needs artwork');
+      const results = await coverService.search(game.title);
+      requireAdmin(); return results;
+    });
+    handle('admin:cover-download', (id, candidate) => serialized(async () => {
+      requireAdmin();
+      const game = library.games.find(g => g.id === id && g.uses_fallback_art);
+      if (!game || !(await coverService.search(game.title)).some(g => g.id === candidate)) throw new Error('Invalid cover match');
+      const bytes = await coverService.download(candidate);
+      requireAdmin();
+      await fs.mkdir(coverDirectory, { recursive: true });
+      const file = path.join(coverDirectory, `${game.id}.jpg`);
+      const temp = `${file}.tmp`;
+      await fs.writeFile(temp, bytes); await fs.rename(temp, file);
+      const next = { ...library, games: library.games.map(g => g.id === id ? { ...g, cover_art_path: file, uses_fallback_art: false, cover_source: 'xenia-manager/x360db', cover_title_id: candidate } : g) };
+      await scanner.saveLibrary(libraryFile, next); library = next; return publicGames();
+    }));
     handle('admin:settings', () => { requireAdmin(); return { rom_directory: library.rom_directory, xenia_executable: library.xenia_executable, runner: library.runner || 'wine', runner_args: library.runner_args || [], platform_os: process.platform }; });
     handle('admin:browse', async kind => {
       requireAdmin();
@@ -104,7 +127,7 @@ else {
       if (!Array.isArray(settings.runner_args) || settings.runner_args.length > 32 || settings.runner_args.some(a => typeof a !== 'string' || a.includes('\0') || a.length > 4096)) throw new Error('Runner arguments must be a JSON string array');
       if (!path.isAbsolute(settings.rom_directory) || !path.isAbsolute(settings.xenia_executable)) throw new Error('ROM and emulator paths must be absolute');
       await fs.access(settings.xenia_executable);
-      const games = await scanner.scanDirectory(settings.rom_directory);
+      const games = await covers.applyCached(await scanner.scanDirectory(settings.rom_directory), coverDirectory);
       const next = { ...library, platform_os: process.platform, rom_directory: settings.rom_directory, xenia_executable: settings.xenia_executable, runner: settings.runner, runner_args: settings.runner_args, games };
       if (settings.new_pin) { if (!/^\d{4,8}$/.test(settings.new_pin)) throw new Error('PIN must be 4–8 digits'); next.admin_credential = scanner.hashPin(settings.new_pin); }
       requireAdmin(); await scanner.saveLibrary(libraryFile, next); library = next; scanError = ''; return publicGames();

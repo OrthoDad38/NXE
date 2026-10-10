@@ -40,6 +40,9 @@ async function mainHarness() {
 }
 test('native pickers require PIN and trusted IPC, constrain picker type and preserve cancel', async () => {
   const h = await mainHarness();
+  await assert.rejects(h.invoke('admin:cover-search', 'test-game'), /session expired/);
+  await assert.rejects(h.invoke('admin:cover-download', 'test-game', '4D5307E6'), /session expired/);
+  await assert.rejects(h.untrusted('admin:cover-search', 'test-game'), /Untrusted/);
   await assert.rejects(h.invoke('admin:browse', 'rom_directory'), /session expired/);
   await assert.rejects(h.untrusted('admin:browse', 'rom_directory'), /Untrusted/);
   assert.equal(h.calls.length, 0);
