@@ -55,7 +55,17 @@ async function launchCurrentGame() {
   busy=true; status('Launching game…');launchScreen(true, gamesList[currentIndex].title);
   try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false;launchScreen(false);status(error.message); }
 }
-function modal(title,help) { document.getElementById('overlay').classList.remove('hidden'); document.getElementById('modal-title').textContent=title;document.getElementById('modal-help').textContent=help;errorDisplay.textContent=''; }
+function modal(title,help) {
+  document.getElementById('overlay').classList.remove('hidden');document.getElementById('modal-title').textContent=title;
+  const hints=document.getElementById('modal-help');hints.replaceChildren();
+  for(const part of help.split(/\b([ABXY])\b/)) {
+    if(/^[ABXY]$/.test(part)) {
+      const glyph=node('span',`controller-button button-${part.toLowerCase()}`);glyph.setAttribute('role','img');glyph.setAttribute('aria-label',part);
+      const img=node('img');img.src='assets/controller-buttons.jpg';img.alt='';glyph.append(img);hints.append(glyph);
+    } else hints.append(document.createTextNode(part));
+  }
+  errorDisplay.textContent='';
+}
 function buttons(labels,className,action) {
   const grid=node('div',className);
   labels.forEach((label,index)=>{ const button=node('button',index===selected?'selected':'',label);button.addEventListener('focus',()=>{selected=index;highlight();});button.addEventListener('click',()=>{selected=index;action();});grid.append(button); });content.append(grid);
