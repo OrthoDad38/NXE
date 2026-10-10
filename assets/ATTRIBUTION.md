@@ -17,3 +17,9 @@ This copy uses a square `0 0 852 852` viewBox to show the sphere without the acc
 https://creativecommons.org/licenses/by-sa/4.0/
 
 Xbox trademarks belong to Microsoft. Project Kratos is an independent launcher.
+
+## Bundled NXE assets (1.4.0)
+
+`assets/nxe/` contains 679 recovered JPEG/PNG/PCM WAV assets and their manifest from the repository owner's supplied Xbox 360 NXE 2.0.7371.0 archive. Source identifiers in the manifest preserve the originating module/archive/resource names. The top-level source description is sanitized; local user paths and Xbox executable files are not distributed. Nine Theme0/Theme1/Theme2 wallpapers plus the original dashboard background are selectable. Seven original sound cues were converted locally to WAV.
+
+Microsoft retains ownership of its dashboard artwork, recordings, and Xbox trademarks. These assets are not licensed under the repository's MIT source-code license. Inclusion at the owner's request is not a claim of redistribution permission or Microsoft affiliation.

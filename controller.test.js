@@ -35,6 +35,10 @@ test('admin chord suppresses game launch and navigation; A triggers only on pres
   context.engine.handleInput(gp,1500);
   context.engine.handleInput(gp,1800);
   assert.deepEqual(actions,['admin','a']);
+  gp.buttons[0].pressed=false;context.engine.handleInput(gp,1900);
+  gp.buttons[9].pressed=true;gp.buttons[0].pressed=true;gp.buttons[15].pressed=true;
+  context.engine.handleInput(gp,2000);assert.deepEqual(actions,['admin','a','admin']);
+  context.engine.handleInput(gp,2100);assert.deepEqual(actions,['admin','a','admin','right']);
 });
 test('native field editing preserves cursor and Tab; Enter accepts and Escape discards', () => {
   const actions=[], listeners={};

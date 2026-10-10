@@ -33,12 +33,12 @@ function applyTheme(state){
 function renderThemes(){
   mode='themes';selected=0;modal('NXE themes','D-pad: choose · A: import/apply · B: return to settings');
   content.replaceChildren(node('p','cover-summary',themeState.assetCount?`${Object.keys(themeState.sounds || {}).length} sounds · ${themeState.menu?'NXE '+themeState.menu.version+' menus':'reimport to recover menu resources'}`:'Import your local NXE dashboard assets.'));
-  buttons(['Import dashboard folder…','Original Kratos theme',...themeState.backgrounds.map(b=>`${b.id===themeState.selected?'✓ ':''}${b.label}`),`Sound volume: ${Math.round((themeState.audio?.volume ?? .5)*100)}%`,`Sound: ${themeState.audio?.muted?'muted':'on'}`,'Test sound','Return to settings'],'cover-options',activate);
+  buttons(['Built-in NXE theme','Import dashboard folder…','Original Kratos theme',...themeState.backgrounds.map(b=>`${b.id===themeState.selected?'✓ ':''}${b.label}`),`Sound volume: ${Math.round((themeState.audio?.volume ?? .5)*100)}%`,`Sound: ${themeState.audio?.muted?'muted':'on'}`,'Test sound','Return to settings'],'cover-options',activate);
 }
 async function activateTheme(){
-  const choice=selected,audioIndex=themeState.backgrounds.length+2;if(choice===audioIndex+3)return returnSettings();
+  const choice=selected,audioIndex=themeState.backgrounds.length+3;if(choice===audioIndex+3)return returnSettings();
   if(choice===audioIndex+2){window.uiSounds?.play('select');return;}busy=true;
-  try {const state=choice===0?await api.importTheme():choice>=audioIndex?await api.setThemeAudio({volume:choice===audioIndex?((Math.round((themeState.audio?.volume ?? .5)*4)+1)%5)/4:themeState.audio?.volume ?? .5,muted:choice===audioIndex+1?!themeState.audio?.muted:themeState.audio?.muted ?? false}):await api.selectTheme(choice===1?null:themeState.backgrounds[choice-2].id);if(state)applyTheme(state);renderThemes();selected=Math.min(choice,selectableButtons().length-1);highlight();}
+  try {const state=choice===0?await api.useBuiltinTheme():choice===1?await api.importTheme():choice>=audioIndex?await api.setThemeAudio({volume:choice===audioIndex?((Math.round((themeState.audio?.volume ?? .5)*4)+1)%5)/4:themeState.audio?.volume ?? .5,muted:choice===audioIndex+1?!themeState.audio?.muted:themeState.audio?.muted ?? false}):await api.selectTheme(choice===2?null:themeState.backgrounds[choice-3].id);if(state)applyTheme(state);renderThemes();selected=Math.min(choice,selectableButtons().length-1);highlight();}
   catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
 }
 function returnSettings() { mode='settings';selected=fields.length+4;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
@@ -151,11 +151,18 @@ function buttons(labels,className,action) {
 }
 function selectableButtons() { return [...content.querySelectorAll(mode==='keyboard'?'.key-grid button':'button')]; }
 function highlight(withSound=false) { if(withSound)window.uiSounds?.play('focus');selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected));if(mode==='settings')updateSettingsDetails(); }
-function openPin() { if(busy) return;window.uiSounds?.play('open'); mode='pin';pin='';selected=0;modal('Administrator PIN','Type PIN + Enter, or use the keypad. D-pad: choose · A: enter · X: erase · Y: submit · Esc/B: cancel');renderPin(); }
+async function openPin() {
+  if(busy || mode!=='library')return;busy=true;
+  try {
+    const access=await api.getAdminAccess();window.uiSounds?.play('open');mode='pin';pin='';selected=0;
+    modal('Administrator PIN','Type PIN + Enter, or use the keypad. D-pad: choose · A: enter · X: erase · Y: submit · Esc/B: cancel');renderPin();
+    if(!access.pin_required){busy=false;return await submitPin();}
+  }catch(error){status(error.message);}finally{busy=false;}
+}
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
 function closeModal() { window.uiSounds?.play('close');mode='library';pin='';editText='';settings={};document.body.classList.remove('modal-open');document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Return to games','Download missing covers','NXE themes','Exit to desktop'],'settings',activate);
+  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Return to games','Download missing covers','NXE themes',`PIN protection: ${settings.admin_pin_required===false?'off':'on'}`,'Exit to desktop'],'settings',activate);
   const list=content.firstElementChild;list.prepend(node('div','settings-highlight'));
   const shell=node('div','settings-shell'),details=node('div','settings-details');
   details.append(node('div','detail-label',themeState.menu?.detailLabel || 'Current setting'),node('div','setting-value'),node('p','setting-description'));
@@ -167,8 +174,8 @@ function updateSettingsDetails() {
   const value=content.querySelector('.setting-value');
   if(!value)return;
   value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'Project Kratos';
-  const descriptionIndex=selected===fields.length+3?9:selected===fields.length+6?8:selected;
-  content.querySelector('.setting-description').textContent=selected===fields.length+5?'Import original NXE theme images from your local dashboard folder. Choose a wallpaper, or restore the Kratos theme.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
+  const descriptionIndex=selected===fields.length+3?9:selected===fields.length+7?8:selected;
+  content.querySelector('.setting-description').textContent=selected===fields.length+6?'Toggle PIN protection immediately. When off, Start or Admin opens settings directly, including Exit to desktop. Turning protection back on uses the saved PIN.':selected===fields.length+5?'Choose a built-in NXE wallpaper and sound preferences, restore the built-in NXE theme, or import another local dashboard folder.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
   if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
@@ -209,7 +216,8 @@ async function activate() {
     else if(selected===fields.length+2) {
       busy=true;
       try { const args=JSON.parse(settings.runner_args || '[]');gamesList=await api.saveSettings({...settings,runner_args:args});renderCarousel();status('Settings saved. Library refreshed.');closeModal(); } catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
-    } else if(selected===fields.length+6){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    } else if(selected===fields.length+7){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    else if(selected===fields.length+6){busy=true;try{const access=await api.setPinProtection(settings.admin_pin_required===false);settings.admin_pin_required=access.pin_required;renderSettings();}catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}}
     else if(selected===fields.length+5)return renderThemes();
     else if(selected===fields.length+4)return startCoverDownloads();
     else closeModal();
@@ -244,7 +252,8 @@ class GamepadWheelController {
   handleInput(gp,timestamp){
     const pressed=i=>!!gp.buttons[i]?.pressed, edge=i=>pressed(i)&&!this.buttonStates[i];
     const chord=pressed(4)&&pressed(5)&&pressed(12);
-    if(chord){if(edge(0)&&mode==='library')openPin();}
+    if(edge(9)&&mode==='library'){openPin();}
+    else if(chord){if(edge(0)&&mode==='library')openPin();}
     else{
       const axisX=gp.axes[0] || 0,axisY=gp.axes[1] || 0;
       const direction=pressed(14)||axisX < -this.deadzone?'left':pressed(15)||axisX>this.deadzone?'right':pressed(12)||axisY < -this.deadzone?'up':pressed(13)||axisY>this.deadzone?'down':mode==='library'&&pressed(4)?'lb':mode==='library'&&pressed(5)?'rb':'';

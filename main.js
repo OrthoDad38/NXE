@@ -15,7 +15,7 @@ let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempt
 let queue = Promise.resolve();
 let pickerOpen = false, shortcutNoticeShown = false;
 function serialized(work) { const result = queue.then(work); queue = result.catch(() => {}); return result; }
-function requireAdmin() { if (Date.now() > adminUntil) throw new Error('Admin session expired. Enter PIN again.'); }
+function requireAdmin() { if (Date.now() > adminUntil) throw new Error('Admin session expired. Open administrator access again.'); }
 function publicGames() { return library.games.map(g => ({ id: g.id, title: g.title, uses_fallback_art: g.uses_fallback_art, cover_art_path: g.cover_art_path ? `kratos-art://cover/${g.id}` : null })); }
 function shortcuts() {
   // Close, devtools and fullscreen shortcuts are blocked locally by the window.
@@ -69,7 +69,8 @@ else {
   app.whenReady().then(async () => {
     libraryFile = path.join(app.getPath('userData'), 'library.json');
     library = await scanner.loadLibrary(libraryFile);
-    try { importedTheme=await nxe.loadTheme(library.nxe_theme,app.getPath('userData')); } catch(error) { console.warn(`[Kratos] Theme fallback: ${error.message}`); }
+    try { importedTheme=await nxe.loadTheme(library.nxe_theme,app.getPath('userData')); }
+    catch(error) { console.warn(`[Kratos] Theme fallback: ${error.message}`);importedTheme=await nxe.loadTheme(null,app.getPath('userData')); }
     const coverDirectory = path.join(app.getPath('userData'), 'covers');
     let scanError = '';
     try { library.games = await covers.applyCached(await scanner.scanDirectory(library.rom_directory), coverDirectory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
@@ -86,6 +87,17 @@ else {
     handle('library:get', () => ({ games: publicGames(), error: scanError }));
     handle('game:launch', launch);
     handle('theme:get',()=>nxe.publicTheme(importedTheme));
+    handle('admin:access',()=>({pin_required:library.admin_pin_required!==false}));
+    handle('admin:pin-protection',required=>serialized(async()=>{
+      requireAdmin();if(typeof required!=='boolean')throw Error('Invalid PIN protection setting');
+      const next={...library,admin_pin_required:required};await scanner.saveLibrary(libraryFile,next);library=next;
+      return {pin_required:required};
+    }));
+    handle('admin:theme-builtin',()=>serialized(async()=>{
+      requireAdmin();const theme=await nxe.loadTheme(null,app.getPath('userData'));
+      theme.audio=importedTheme?.audio || theme.audio;requireAdmin();
+      const next={...library,nxe_theme:nxe.themeConfig(theme)};await scanner.saveLibrary(libraryFile,next);library=next;importedTheme=theme;return nxe.publicTheme(theme);
+    }));
     handle('admin:theme-import',()=>serialized(async()=>{
       requireAdmin();if(pickerOpen)throw new Error('A file picker is already open');pickerOpen=true;
       try {
@@ -101,18 +113,20 @@ else {
       requireAdmin();
       if(id!==null && !nxe.publicTheme(importedTheme).backgrounds.some(b=>b.id===id))throw new Error('Unknown theme');
       if(!importedTheme)return nxe.publicTheme(null);
-      const config={directory:importedTheme.directory,selected:id,audio:importedTheme.audio};const next={...library,nxe_theme:config};
+      const config={...nxe.themeConfig(importedTheme),selected:id};const next={...library,nxe_theme:config};
       await scanner.saveLibrary(libraryFile,next);library=next;importedTheme.selected=id;return nxe.publicTheme(importedTheme);
     }));
     handle('admin:theme-audio',audio=>serialized(async()=>{
-      requireAdmin();if(!importedTheme)throw Error('Import an NXE theme first');
+      requireAdmin();if(!importedTheme)throw Error('NXE theme unavailable');
       if(typeof audio?.muted!=='boolean'||typeof audio.volume!=='number'||!Number.isFinite(audio.volume)||audio.volume<0||audio.volume>1)throw Error('Invalid sound settings');
-      const config={directory:importedTheme.directory,selected:importedTheme.selected,audio:{muted:audio.muted,volume:audio.volume}};
+      const config={...nxe.themeConfig(importedTheme),audio:{muted:audio.muted,volume:audio.volume}};
       const next={...library,nxe_theme:config};await scanner.saveLibrary(libraryFile,next);library=next;importedTheme.audio=config.audio;return nxe.publicTheme(importedTheme);
     }));
     handle('admin:unlock', pin => {
-      if (Date.now() < blockedUntil) throw new Error('Too many attempts. Wait 30 seconds.');
-      if (!scanner.verifyPin(pin, library.admin_credential)) { if (++attempts >= 5) { blockedUntil = Date.now() + 30000; attempts = 0; } throw new Error('Incorrect PIN'); }
+      if (library.admin_pin_required!==false) {
+        if (Date.now() < blockedUntil) throw new Error('Too many attempts. Wait 30 seconds.');
+        if (!scanner.verifyPin(pin, library.admin_credential)) { if (++attempts >= 5) { blockedUntil = Date.now() + 30000; attempts = 0; } throw new Error('Incorrect PIN'); }
+      }
       attempts = 0; adminUntil = Date.now() + 300000; return true;
     });
     handle('admin:lock', () => { adminUntil = 0; });
@@ -136,7 +150,7 @@ else {
       const next = { ...library, games: library.games.map(g => g.id === id ? { ...g, cover_art_path: file, uses_fallback_art: false, cover_source: 'xenia-manager/x360db', cover_title_id: candidate } : g) };
       await scanner.saveLibrary(libraryFile, next); library = next; return publicGames();
     }));
-    handle('admin:settings', () => { requireAdmin(); return { rom_directory: library.rom_directory, xenia_executable: library.xenia_executable, runner: library.runner || 'wine', runner_args: library.runner_args || [], platform_os: process.platform }; });
+    handle('admin:settings', () => { requireAdmin(); return { rom_directory: library.rom_directory, xenia_executable: library.xenia_executable, runner: library.runner || 'wine', runner_args: library.runner_args || [], platform_os: process.platform,admin_pin_required:library.admin_pin_required!==false }; });
     handle('admin:browse', async kind => {
       requireAdmin();
       if (!['rom_directory', 'xenia_executable'].includes(kind)) throw new Error('Invalid picker');

@@ -24,7 +24,7 @@ PIN-protected folder import, immutable source access, local image cache and mani
 4. Measure transition timing against the reference; translate verified layout and motion data.
 5. Locate and convert supported navigation/select/back sounds if recoverable. Add volume and mute controls when audio exists.
 
-Imported Microsoft assets remain local to the user's installation. No executable dashboard files, extracted Microsoft images, account/profile files or SDK components are committed to GitHub or included in the installer.
+Earlier releases used local-only imports. Version 1.4.0 bundles the recovered assets at the repository owner's request; see the current milestone below. Executable dashboard files, account/profile files, and SDK components remain excluded.
 
 ## Second milestone — 1.2.0
 
@@ -45,3 +45,9 @@ Next work: decode DATA object properties/timelines, measure animation fidelity, 
 Active recovered assets: defaultbackground.jpg, Aura_Horizon.png (1600×75 transparent glow), TrayBackground.JPG (420×320), icon_disc.png (200×277 with embedded reflection), MobyChannelZero.png, xboxLogo.png (300×196, CSS-clipped orb), ico_32x_console.png, Legend_A/B/X/Y.png, eight GameDetails_BoxArtDropShadow segments and the seven NXE sound cues. The original background appears as Original NXE · Green dashboard in the theme picker; existing 1.2 asset caches support it without reimport.
 
 Rendering still supplies the floor geometry and ripple rings, source-texture lighting, tile-content reflections, movement, typography and smooth menu frame. SphereHighlight is a specialized rendering texture, and Theme1/Theme2 prop layers are intended for different scenes; they have not been applied blindly to the game library. No low-resolution menu frame is stretched again. Asset dimensions, colors and composition were inspected before mapping.
+
+## Built-in theme milestone (1.4.0)
+
+All 679 recovered images/audio files are now in assets/nxe and packaged with the app, including ten wallpaper choices and seven PCM WAV effects. Fresh installs select the original green NXE scene automatically. Existing preferences/imports are retained and a missing import falls back to the built-in theme. Built-in preferences use a portable identifier rather than an installation path. Source executables are excluded. The square eight-piece box-art shadow remains inventoried but is not rendered; a rounded CSS shadow follows the rounded artwork.
+
+Microsoft asset ownership is separate from the MIT source-code license. See assets/ATTRIBUTION.md for source and distribution notes.

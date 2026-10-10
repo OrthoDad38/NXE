@@ -1,9 +1,10 @@
 {
   "name": "project-kratos",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "description": "Controller-first Xenia kiosk launcher",
   "main": "main.js",
   "author": "Project Kratos",
+  "homepage": "https://github.com/OrthoDad38/project-kratos",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -55,6 +56,7 @@
       "shortcutName": "Project Kratos"
     },
     "linux": {
+      "maintainer": "Project Kratos",
       "target": [
         "AppImage",
         "deb"

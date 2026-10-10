@@ -30,7 +30,7 @@ async function mainHarness(withTheme=false) {
     }
   };
   const context = vm.createContext({
-    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {} } : name==='./nxe'&&withTheme?{...require('./nxe'),loadTheme:async()=>({directory:__dirname,manifest:{version:1,assets:{},backgrounds:[{id:'theme-test',label:'Test'}],inventory:[],sounds:{},notes:[]},selected:'theme-test',audio:{volume:.5,muted:false}})}:name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
+    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {} } : name==='./nxe'?{...require('./nxe'),loadTheme:async()=>({directory:__dirname,manifest:{version:1,assets:{},backgrounds:[{id:'theme-test',label:'Test'}],inventory:[],sounds:{},notes:[]},selected:'theme-test',audio:{volume:.5,muted:false}})}:name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
     __dirname, console: { info() {}, warn() {}, error() {} }, process: { platform: 'win32' }, Date: { now: () => now }, URL, Response
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'main.js'), 'utf8'), context);
@@ -38,6 +38,19 @@ async function mainHarness(withTheme=false) {
   const caller = () => ({ sender: window.webContents, senderFrame: window.webContents.mainFrame });
   return { calls, events, emulator, windowCalls, invoke: (name, ...args) => handlers.get(name)(caller(), ...args), untrusted: (name, ...args) => handlers.get(name)({ sender: {}, senderFrame: {} }, ...args), setTime: value => { now = value; }, setResult: value => { dialogResult = value; } };
 }
+test('PIN protection defaults on, can be disabled in-session and reenabled with the saved PIN',async()=>{
+  const h=await mainHarness();
+  assert.equal((await h.invoke('admin:access')).pin_required,true);
+  await assert.rejects(h.invoke('admin:pin-protection',false),/session expired/);
+  await assert.rejects(h.untrusted('admin:pin-protection',false),/Untrusted/);
+  await h.invoke('admin:unlock','1234');
+  await assert.rejects(h.invoke('admin:pin-protection','off'),/Invalid/);
+  await h.invoke('admin:pin-protection',false);await h.invoke('admin:lock');
+  await h.invoke('admin:unlock','');assert.equal((await h.invoke('admin:settings')).admin_pin_required,false);
+  await h.invoke('admin:pin-protection',true);await h.invoke('admin:lock');
+  await assert.rejects(h.invoke('admin:unlock',''),/Incorrect PIN/);
+  await h.invoke('admin:unlock','1234');assert.equal((await h.invoke('admin:settings')).admin_pin_required,true);
+});
 test('native pickers require PIN and trusted IPC, constrain picker type and preserve cancel', async () => {
   const h = await mainHarness();
   await assert.rejects(h.invoke('admin:cover-search', 'test-game'), /session expired/);

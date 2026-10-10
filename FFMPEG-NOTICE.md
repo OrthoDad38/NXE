@@ -11,4 +11,4 @@ Source and build references:
 - https://www.gyan.dev/ffmpeg/builds/
 - https://johnvansickle.com/ffmpeg/
 
-Build on the target OS to obtain the matching Windows/Linux binary. Do not reuse Windows node_modules when building a Linux installer. No Microsoft sound recordings or other dashboard assets are bundled; those are extracted from the user's local files at import time.
+Build on the target OS to obtain the matching Windows/Linux binary. Do not reuse Windows node_modules when building a Linux installer. The built-in NXE package includes seven Microsoft sound cues converted from the owner's supplied dashboard archive; optional imports can convert additional local resources. Dashboard asset ownership is documented in assets/ATTRIBUTION.md.

@@ -88,16 +88,23 @@ async function importTheme(folder,userData,authorize=()=>{}){
   const original=Object.entries(manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/')&&a.source.endsWith('/defaultbackground.jpg'));
   return {directory:destination,selected:original?.[0] || manifest.backgrounds.find(b=>b.label.startsWith('Theme1'))?.id || manifest.backgrounds[0].id};
 }
-async function loadTheme(config,userData){
-  if(!config)return null;
-  const root=await fs.realpath(path.join(userData,'nxe-themes')),directory=await fs.realpath(config.directory);
-  if(!directory.startsWith(root+path.sep))throw new Error('Invalid imported theme location');
+async function loadTheme(config,userData,builtinDirectory=path.join(__dirname,'assets','nxe')){
+  const builtin=!config || config.directory==='builtin';
+  let directory;
+  if(builtin)directory=await fs.realpath(builtinDirectory);
+  else {
+    const root=await fs.realpath(path.join(userData,'nxe-themes'));directory=await fs.realpath(config.directory);
+    if(!directory.startsWith(root+path.sep))throw new Error('Invalid imported theme location');
+  }
   const manifest=JSON.parse(await fs.readFile(path.join(directory,'manifest.json'),'utf8'));
   if(manifest.version!==1 || !Array.isArray(manifest.backgrounds))throw new Error('Invalid theme manifest');
   for(const [id,asset] of Object.entries(manifest.assets))if(!/^[a-f0-9]{20}$/.test(id) || !/^[a-f0-9]{20}\.(jpg|png|wav)$/.test(asset.file))throw new Error('Invalid theme asset');
-  const audio=typeof config.audio?.muted==='boolean' && Number.isFinite(config.audio.volume) && config.audio.volume>=0 && config.audio.volume<=1?config.audio:{volume:.5,muted:false};
-  return {directory,manifest,selected:config.selected,audio};
+  const audio=typeof config?.audio?.muted==='boolean' && Number.isFinite(config.audio.volume) && config.audio.volume>=0 && config.audio.volume<=1?config.audio:{volume:.5,muted:false};
+  const original=Object.entries(manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/')&&a.source.endsWith('/defaultbackground.jpg'));
+  const selected=config && Object.hasOwn(config,'selected')?config.selected:original?.[0] || manifest.backgrounds[0]?.id;
+  return {directory,manifest,selected,audio,builtin};
 }
+function themeConfig(theme){return {directory:theme.builtin?'builtin':theme.directory,selected:theme.selected,audio:theme.audio};}
 function publicTheme(theme){
   if(!theme)return {backgrounds:[],selected:null,sounds:{},audio:{volume:.5,muted:false}};
   const url=id=>`kratos-art://theme/${id}`;
@@ -112,4 +119,4 @@ function publicTheme(theme){
   if(scene.background&&!backgrounds.some(b=>b.url===scene.background))backgrounds.unshift({id:scene.background.split('/').at(-1),label:'Original NXE · Green dashboard',url:scene.background});
   return {backgrounds,selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes,sounds:Object.fromEntries(Object.entries(theme.manifest.sounds || {}).map(([role,id])=>[role,url(id)])),audio:theme.audio,menu:theme.manifest.menus?.['dashSysCslSet.xur']?{panel:panel?url(panel[0]):null,detailLabel:theme.manifest.menus['dashSysCslSet.xur'].strings.find(s=>s==='Current Setting') || 'Current Setting',source:theme.manifest.menus['dashSysCslSet.xur'].source,version:theme.manifest.menus['dashSysCslSet.xur'].version}:null,icons,buttons,scene};
 }
-module.exports={parseXzp,importTheme,loadTheme,publicTheme};
+module.exports={parseXzp,importTheme,loadTheme,publicTheme,themeConfig};

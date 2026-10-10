@@ -1,110 +1,153 @@
 # Project Kratos
 
-An offline Electron launcher for Xenia Canary, based on the supplied Xbox 360 NXE carousel. No games, emulator, or cover downloads are included. Artwork provenance is recorded in `assets/ATTRIBUTION.md`.
+A fullscreen, controller-first Electron launcher for Xenia Canary on Windows 10/11 and Linux Mint. The built-in NXE theme includes the recovered green dashboard background, nine additional wallpapers, original scene artwork, button legends, and seven navigation/select/back/menu sounds. No dashboard import, separate theme download, or internet connection is required to use them. Games and Xenia are not included.
 
-The dashboard follows the supplied NXE visual reference: lime-to-dark-green landscape tiles recede to the right, above a misty green background and silver floor with soft reflections. Titles sit inside tiles and fallback games use CSS disc artwork. The heading is **Game Library**, with no avatar. The corner uses the user's supplied Xbox sphere image and six softly blurred perspective ripple ellipses positioned to match the supplied screenshot. A/B/X/Y prompts use circular CSS crops of the user's button sheet, preserving the source image pixels. Admin and launch screens use the same palette. The decorative navigation labels are not additional settings or marketplace functions.
+Game Library uses rounded cover tiles with the entire cover visible, no title overlay, and floor reflections. Missing covers show green disc tiles and cleaned game titles. There is no avatar. The silver floor, ripples, rounded shadow, smooth menu frame, and movement are rendered in CSS/JavaScript. Convection is preferred when installed; the font is not bundled and system fonts provide a fallback.
 
-All interface text prefers the locally installed **Convection** font, including game titles, admin buttons, PIN controls and editable fields. The font is not redistributed; install it on the machine running Kratos, then restart the app. Segoe UI/system fonts provide a fallback on other hosts.
+## Windows: install without a terminal
 
-Motion and admin menus follow the [NXE segment at 1:09–1:25](https://www.youtube.com/watch?v=W_jT9c7RP5Q&t=69s): the collection enters with a short slide/fade, outgoing tiles drift left and fade while the next tile enlarges into place, and admin pages slide into a slate-blue panel. Settings use a moving glossy green highlight, thin row separators and a right-hand current-value/help column. This recreates the observed interaction style with Kratos settings rather than copying the Xbox console's settings functionality. Motion is disabled when the OS requests reduced motion.
+Run the **Project Kratos Setup VERSION.exe** installer supplied with the build. It includes Electron, the launcher, NXE assets, and the sound conversion tool. It creates desktop and Start menu shortcuts. Open Project Kratos from either shortcut; Node.js and npm are not required on the installed machine. Xenia Canary and your games must be supplied separately.
 
-## Run and build
+For maintainers, `npm run build:windows` creates the installer in `dist/`. Installers are currently unsigned; code signing is needed for a polished public release. Builds are not automatically uploaded to GitHub Releases.
 
-Install Node.js 22 or newer, then run in this folder:
+## Source checkout: Windows or Linux
+
+Install Node.js 22 or newer with npm and Git. Clone the repository and install the locked dependencies:
 
 ```sh
-npm install
+git clone https://github.com/OrthoDad38/project-kratos.git
+cd project-kratos
+npm ci
 npm run start
+```
+
+Use `git pull` and `npm ci` to update a checkout. For a Windows checkout, `npm run shortcut` creates a desktop shortcut without a visible terminal. Keep the checkout in the same location, or recreate its shortcut after moving it.
+
+```sh
 npm test
 npm run build
 ```
 
-`build` packages for the current host; `build:windows` produces an NSIS installer and `build:linux` produces AppImage and Debian packages. Build on each target OS. Electron supports Windows 10/11; Linux Mint needs a desktop session and the normal Electron system libraries. Linux AppImages may require FUSE. Installers are unsigned; configure your own signing credentials for distribution. Do not disable Electron's sandbox to work around Linux setup problems.
+`build` targets the current host. Build Windows packages on Windows and Linux packages on Linux. Do not copy Windows `node_modules` to Linux: Electron and FFmpeg are platform-specific.
 
-## First setup and controller navigation
+## Linux Mint installation and running
 
-For a Windows source checkout, run `npm run shortcut` once after `npm install`. This creates **Project Kratos.lnk** on your Windows desktop (including redirected/OneDrive desktops) and launches the checkout without a visible terminal. Keep the checkout at the same location; rerun the command if you move it. The Windows installer also explicitly creates desktop and Start menu shortcuts and recreates the desktop shortcut on reinstall. Running `npm run start` by itself does not install a shortcut.
+Use a 64-bit Intel/AMD Mint desktop session. Kratos runs natively on Linux; its Windows Xenia executable runs through Wine or a configured Proton runner. Wine/Proton and game compatibility depend on your GPU, drivers, emulator version, and game. Linux Mint runtime and package installation still need testing on a physical Mint machine; the Windows build does not establish Linux compatibility.
 
-Connect a standard-mapped Xbox controller and press a button. Chromium's native Gamepad API handles the OS input backend; this app does not bundle independent XInput, evdev or SDL bindings. Test your controller's standard mapping on each target desktop.
+### Install from a Debian package (preferred for Mint)
 
-- D-pad or left stick: scroll. A: launch. LB/RB: jump five games.
-- Hold LB + RB + D-pad Up and press A to open the PIN keypad. The chord takes priority over scrolling and launching.
-- Mouse/keyboard: click **Admin**, type the PIN and press Enter. The same PIN protection applies to every input method. Tab moves through buttons; Enter activates the focused button; Escape closes or cancels the panel.
-- Initial PIN: **1234**. Change it in settings before giving the kiosk to children.
-- PIN keypad: D-pad to choose, A to enter, X to erase, Y to submit, B to cancel.
-- Settings: select a field with A; use the on-screen keyboard to enter paths. X erases; Y accepts an edit; B discards it. Select **Save and rescan** to persist all changes.
-- You can also click a field, type directly or use Ctrl+A/C/V/X/Z/Y to select, copy, paste, cut, undo or redo. Press Enter or click **Done** to accept an edit; Escape or **Cancel** discards it. Gamepad navigation and the on-screen keyboard remain available.
-- **Browse ROM folder…** opens the native folder picker; **Browse Xenia executable…** opens the native `.exe` picker. On Windows these use the familiar File Explorer selection dialogs. Cancel keeps the existing setting. Picked paths are saved only when you choose **Save and rescan**. Pickers require an authenticated, unexpired admin session; the native OS dialogs use mouse/keyboard navigation.
-- Configure absolute ROM directory and Xenia executable paths. Linux paths refer to Linux files, including the Windows `.exe`. Example: `/home/kiosk/xenia/xenia_canary.exe`.
-- Linux runner defaults to `wine`. For Proton set the runner to an absolute Proton script path and runner arguments to `["run"]`. Provide `STEAM_COMPAT_DATA_PATH` and `STEAM_COMPAT_CLIENT_INSTALL_PATH` in the launch environment when required by your Proton installation. A runner must stay alive until its emulator exits; wrappers that detach immediately cannot provide reliable return-to-kiosk behavior.
-- **Exit to desktop** is protected by the PIN session. Sessions expire after five minutes and are cleared on launch or return to games. Five wrong attempts temporarily block PIN entry for thirty seconds.
+Obtain the `project-kratos_VERSION_amd64.deb` built on Linux. In the file manager, double-click it, open the package installer, and select **Install Package**. Launch **Project Kratos** from Mint's application menu afterward. Node.js and npm are not needed. Use Mint Software Manager to install **Wine** separately before launching games.
 
-Settings and the generated `library.json` live under Electron's OS-specific `userData` folder: normally `%APPDATA%/Project Kratos` on Windows or `~/.config/Project Kratos` on Linux (the actual directory name may use `project-kratos` depending on packaging). The PIN uses salted scrypt credentials, not plaintext. Existing schema files containing `admin_pin` migrate automatically. Keep this file writable only by the kiosk account and its administrator. Missing files are initialized; malformed files are preserved and cause startup to fail rather than silently resetting authentication.
+The terminal alternative, from the directory containing that package, is:
 
-## Library and artwork
-
-Scanning recurses through real subdirectories, skipping symlinks, for `.iso`, `.xex`, and `.god` files, case-insensitively. For each ROM it finds a same-directory `<ROM_NAME>.png`, `.jpg`, or `.jpeg` cover, ignoring case. Missing or unreadable covers render safe text-only CSS Xbox 360 cards. Titles remove bracketed metadata, split camel case, and normalize separators. IDs are stable hashes of absolute paths. The renderer only receives titles, IDs and controlled artwork URLs; raw process spawning and filesystem access stay in the main process.
-
-This scanner discovers `.god` files, not arbitrary Games on Demand directory layouts or extensionless content containers. Extracted games may contain multiple `.xex` files; arrange your curated ROM folder to avoid unwanted entries. Xenia itself determines whether a particular file is supported. Scans run at startup and after saving settings; rescan errors preserve the previous library and are shown to the administrator.
-
-Launch commands use argument arrays with `shell: false`:
-
-```text
-Windows: xenia_canary.exe --fullscreen <absolute-ROM-path>
-Linux:   wine xenia_canary.exe --fullscreen <absolute-ROM-path>
-Proton:  /path/to/proton run xenia_canary.exe --fullscreen <absolute-ROM-path>
+```sh
+sudo apt install ./project-kratos_VERSION_amd64.deb
 ```
 
-The kiosk shows a fullscreen **Starting your game…** screen and releases global shortcuts when the process starts. It stays fullscreen underneath Xenia instead of minimizing and exposing the desktop while the emulator initializes. Xenia creates and focuses its own window; no fixed startup delay or repeated focus forcing is used. Its own windowed-to-fullscreen transition and loading time depend on the emulator build and game. Process errors or termination restore fullscreen, kiosk mode, keyboard focus and Gamepad API polling. Controllers switch back to the launcher once its window regains focus. Wine/Proton compatibility and Xenia's fullscreen behavior need testing with your exact emulator build and games.
+Replace VERSION with the actual filename. `apt` resolves the package's desktop library dependencies. Do not run Kratos itself with sudo. The Debian target installs an application-menu entry and uses electron-builder's sandbox setup. See the [electron-builder Linux documentation](https://www.electron.build/linux/) for packaging details.
 
-## Kiosk security and limitations
+### Portable AppImage
 
-The window is frameless and fullscreen with `kiosk: true`. Close events, renderer navigation, popups, webviews, devtools and renderer modifier shortcuts are blocked. The renderer is sandboxed with context isolation, no Node integration, a restrictive CSP and a narrow IPC bridge. IPC callers and launch IDs are validated; admin privileges are checked in the main process. ROM titles never become executable HTML.
+Obtain the Linux-built **Project Kratos-VERSION.AppImage**. In the file manager, open **Properties → Permissions**, enable permission to execute it, and double-click the file. AppImages do not install a menu entry automatically. The terminal alternative is:
 
-Electron cannot guarantee interception of Alt+Tab, the Windows key, secure attention sequences, task managers, desktop compositor bindings or physical access. Windows uses local window/input blocking for close, devtools and fullscreen keys rather than attempting to register reserved keys or an invalid standalone Super accelerator. On Linux, intercepting Alt+Tab is best-effort. The startup message explicitly identifies the OS task-switching limitation. Global shortcuts are suspended during gameplay to avoid interfering with Xenia, so the emulator window also needs OS-level lockdown. This application alone is not a security boundary or a complete childproof system. Use a dedicated non-admin kiosk account, appropriate Windows shell/restriction policies or Linux desktop restrictions, filesystem permissions, and restricted emulator settings. Test escape routes on the actual machine before unattended use.
+```sh
+chmod +x "Project Kratos-VERSION.AppImage"
+"./Project Kratos-VERSION.AppImage"
+```
 
-The earlier `OS did not grant shortcut` and `Unsupported shortcut: Super` messages were shortcut-registration diagnostics, not fatal startup errors. `Downloading Electron binary...` pertains to obtaining the Electron runtime. If the dashboard closes or never appears, those messages alone do not explain why. Current startup prints `[Kratos] Dashboard loaded.` and reports main-frame load failures and renderer termination details to the terminal.
+If it reports a missing FUSE library, install the compatibility library through Software Manager or these commands:
 
-## Repository and validation
+```sh
+# Mint 22.x / Ubuntu 24.04 base:
+sudo apt install libfuse2t64
+# Mint 21.x / Ubuntu 22.04 base, instead:
+sudo apt install libfuse2
+```
 
-- `main.js`: window, caller validation, PIN sessions, settings, controlled artwork protocol and emulator lifecycle.
-- `preload.js`: safe context bridge.
-- `index.html`, `styles.css`, `renderer.js`: supplied carousel structure, colors and 3D positioning, with gamepad polling, admin controls, safe fallback rendering and status messages. CSS/JS are external so CSP can disallow inline execution.
-- `scanner.js`: recursive discovery, stable IDs, title cleanup, PIN migration and atomic JSON persistence.
-- `scanner.test.js`: filesystem integration tests and credential checks using Node's built-in test runner.
+These package names and the extract-and-run fallback are documented by [AppImage](https://docs.appimage.org/user-guide/troubleshooting/fuse.html). If FUSE is unavailable, try `"./Project Kratos-VERSION.AppImage" --appimage-extract-and-run`. For sandbox/AppArmor errors, prefer the installed Debian package and inspect the error on your system; do not launch with `--no-sandbox` or globally disable AppArmor.
 
-Before distribution, validate Windows and Mint builds, controller connect/disconnect and held buttons, empty/missing libraries, artwork failures, paths with spaces, bad PIN throttling, settings expiry, launch errors, normal emulator exit, Wine/Proton lifecycle and OS kiosk policies. Runtime tests on each target host and signed release builds are required before calling this production-ready.
+### Run or build from source on Mint
 
-## Download missing covers
-Unlock Administrator settings with your PIN, then choose **Download missing covers**. Confirm the matching Xbox 360 title for each game, or choose Skip. D-pad/arrow keys select; A/Enter downloads; B/Escape returns to settings. Mouse and Tab work too. Save and rescan first if the ROM directory changed: downloads operate on the saved library.
+Install Git and Wine through Software Manager, or:
 
-Artwork is fetched from the [x360db archive](https://github.com/xenia-manager/x360db), without an API key. Coverage varies; unavailable artwork leaves the fallback tile intact. Network errors can be retried or skipped. The five-minute admin session still applies; reopen settings with your PIN if it expires.
+```sh
+sudo apt update
+sudo apt install git wine
+```
 
-The build-tool dependencies use a scoped override for `@electron/get` → `global-agent` 4.1.3 to remove the vulnerable `sprintf-js` logging dependency chain. Commit and use the supplied lockfile; `npm ci` installs the tested versions reproducibly. Version 1.0.8 passes the full npm audit as of October 9, 2026.
+Install Node.js 22 or newer using the [official Node.js download instructions](https://nodejs.org/en/download). Confirm `node --version` and `npm --version`, then follow the source checkout commands above. The Mint repository's Node.js version may be older than required. Run npm as your normal desktop user.
 
-Covers are cached under the application's userData `covers` directory and reapplied on startup/rescan. Local PNG/JPG artwork beside the ROM takes priority. Existing covers are never replaced by this action. The entire cover remains visible using `object-fit: contain`. Requests go through the main process to fixed archive URLs with timeouts, size limits, and JPEG signature checks. No remote URLs or filesystem paths are accepted from the renderer. Artwork remains the property of its respective owners; the archive supplies it for identification and archival purposes.
+Build Linux packages on that Mint machine:
 
-Artwork tiles follow the cover image proportions (up to 44vh tall and 33vw wide), without a title overlay or cropping. Missing/broken artwork retains the green tile and game title. Exit to desktop is the last Administrator settings option.
+```sh
+npm ci
+npm test
+npm run build:linux
+```
 
-## Original NXE theme import (1.1.0)
-Unlock Administrator settings → **NXE themes** → **Import dashboard folder…**. Select the downloaded `Xbox 360 Dashboard` folder, its `Dashboards` folder, or the `NXE` folder. The importer recognizes NXE by `Theme1/Wallpaper1.jpg`. It selects Theme1's original wallpaper initially. Choose any imported wallpaper, or **Original Kratos theme** to restore the existing appearance. Changes apply immediately and persist without Save and rescan.
+The configured outputs are AppImage and Debian packages under `dist/`. First builds download packaging tools, Electron, and a Linux FFmpeg binary. No cabextract or dashboard import is needed for the built-in theme. For optional compressed dashboard imports, install `cabextract` with `sudo apt install cabextract`.
 
-Supported JPEG/PNG theme layers and images from the XUIZ `mediasite.xzp` archive are copied to userData/nxe-themes/import-*/. Each import has a manifest mapping safe asset IDs to cached files, the nine available wallpapers, and the archive inventory. The source folder remains untouched and need not stay available afterward. Images are served through the existing restricted local artwork protocol. Import and selection require an active PIN session, and Exit to desktop stays last.
+### Configure Xenia on Mint
 
-This first milestone renders the original wallpapers over Kratos's existing floor, tiles and UI. Layered images and recovered icons are inventoried for further composition work; compiled XUR menus, XEX code, Xbox font resources and audio are not executed or translated. No dashboard binaries or imported Microsoft artwork are included in this repository or installer. See NXE-ASSETS.md for findings and remaining work.
+1. Put Xenia Canary in a folder you can write to, such as `/home/YOUR_USER/Emulators/Xenia`. Install compatible graphics drivers and verify the emulator independently before configuring Kratos. You can test it with `wine /home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
+2. Launch Kratos, press controller **Start**, and enter the initial PIN **1234**.
+3. Choose **Browse ROM folder…** and **Browse Xenia executable…**. Select Linux paths, such as `/home/YOUR_USER/Games/Xbox360` and `/home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
+4. Leave **Linux runner** as `wine` and **Runner arguments** as `[]` for ordinary Wine. Save and rescan.
+5. Launch a game with A. When the emulator process exits, Kratos restores its fullscreen window and controller focus.
 
-## NXE sounds and menu resources (1.2.0)
-After updating, **reimport the dashboard folder** in Admin → NXE themes → Import dashboard folder. Existing 1.1 imports keep working but do not contain sounds or embedded menu assets.
+For Proton, select the absolute Proton script path as runner and set runner arguments to `["run"]`. Your launch environment must supply `STEAM_COMPAT_DATA_PATH` and `STEAM_COMPAT_CLIENT_INSTALL_PATH` if required by that Proton installation. A runner must remain alive until Xenia exits; wrappers that detach cannot return reliably to the kiosk. Wine prefixes are inherited from the launch environment. The app does not install Wine, Proton, graphics drivers, or Xenia.
 
-The importer now recovers resources from the actual 2.0.7371.0 NXE $flash_dash.xex and $flash_huduiskin.xex. It verifies XEX block hashes, decodes AES/LZX containers without executing Xbox code, and converts seven mapped XMA effects to local PCM WAV files with bundled FFmpeg. Windows uses its built-in expand.exe for LZX decoding; Linux needs cabextract available on PATH for compressed dashboard imports. Imports made on Windows can be copied with their cached theme directory to Linux. If a decoder is missing or a module is unsupported, import notes record the limitation and supported wallpapers still work.
+## Controller and administrator controls
 
-NXE themes offers sound volume (0/25/50/75/100%), mute and Test sound. Preferences persist independently of wallpaper selection. Controller navigation, keyboard arrows/Tab and mouse selections use the same cues. Failed playback never blocks navigation.
+- D-pad/left stick: browse games. A: launch. LB/RB: jump five.
+- **Start: open administrator access.** The earlier LB + RB + D-pad Up + A shortcut also remains available.
+- Mouse: click **Admin**. Keyboard: type the PIN and Enter; Tab chooses controls, Enter activates, Escape cancels.
+- Initial PIN: **1234**. Change it with **New PIN** and **Save and rescan**.
+- PIN keypad: D-pad chooses, A enters, X erases, Y submits, B cancels.
+- Settings support controller entry, native typing/paste, and mouse/keyboard file pickers. Enter/Done accepts a field edit; Escape/Cancel discards it. Save and rescan persists paths, runner settings, and a changed PIN.
+- **PIN protection: on/off** immediately saves whether admin access asks for a PIN. Turn it off to open settings directly with Start or Admin, including access to Exit to desktop. Turn it back on to use the retained PIN. Turning it off does not erase your PIN; a new PIN is saved through Save and rescan.
+- **Exit to desktop** is always the last option. Admin sessions expire after five minutes and are cleared on game launch or return to Game Library. Five incorrect PINs impose a thirty-second cooldown when protection is enabled.
 
-Menu translation currently decodes XUR string/vector sections, maps the settings list/detail/back/selection structure onto existing Kratos controls, and uses original NXE BackgroundPanel and A/B/X/Y legend images. Admin labels retain their actual PC-launcher functions. Compiled DATA timelines, object/property bindings and the full console shell are not yet translated; existing measured animation approximations remain. No avatar or title overlays were reintroduced. See FFMPEG-NOTICE.md for the decoder's attribution.
+PIN protection starts enabled, including for existing libraries without the new preference. Disabling it intentionally allows any user to open settings and exit the kiosk. Main-process caller validation, session checks, and restricted IPC remain active in either mode.
 
-## Original NXE scene assets (1.3.0)
-In Admin → NXE themes, select **Original NXE · Green dashboard**. New imports select it initially. Imports from 1.2 already contain these assets, so updating makes the new background option and scene bindings available without reimport; 1.1 imports need reimport to recover executable resources.
+## Built-in NXE theme, wallpapers, and sound
 
-Original recovered assets now supply the default green background, Aura_Horizon glow, TrayBackground texture, icon_disc artwork including its embedded reflection, MobyChannelZero selection marker, Xbox logo on the dashboard/launch overlay, console settings icon, A/B/X/Y button legends and seven sound effects. Cover-art tiles use the eight original GameDetails box-art shadow pieces at 10-pixel corner size, with stretched straight edges. Tile reflections use the actual rendered tile content.
+Fresh installations automatically use **Original NXE · Green dashboard**. Existing wallpaper, audio, and imported-theme preferences are retained when available. If an older import is missing, Kratos falls back to the built-in NXE theme.
 
-The silver floor geometry/ripples, tile lighting, animation and smooth menu frame still use renderer code where no directly suitable source asset/complete runtime translation exists. The tiny menu frame bitmap is intentionally not enlarged again. Theme1/Theme2 prop layers belong to other dashboard scenes and are not indiscriminately overlaid on the game library. Game artwork keeps its natural aspect ratio and has no title overlay; fallback titles remain. No avatar or Xbox Live/service menus have been added.
+Admin → **NXE themes** offers **Built-in NXE theme**, all ten background choices, sound volume (0/25/50/75/100%), mute, and Test sound. Theme/audio changes save immediately. The seven cues are left, right, select, back, open, close, and focus. Playback failures do not block navigation. **Original Kratos theme** selects the earlier rendered background; **Built-in NXE theme** restores the included green dashboard and its scene assets.
+
+All 679 recovered image/audio assets and resource metadata are included under `assets/nxe/`; no Xbox executable, account/profile, ROM, or emulator binary is included. Bundled sound files are already converted to PCM WAV, so ordinary playback does not need conversion or access to the original download folder. Paths in saved built-in preferences use the portable `builtin` identifier.
+
+Optional **Import dashboard folder…** still accepts a local folder containing `NXE/Theme1/Wallpaper1.jpg` (or its parent). It caches supported images and decodes dashboard resources without executing Xbox code. Windows uses expand.exe; Linux uses cabextract. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
+
+## Games and cover artwork
+
+Scanning recurses through real directories for `.iso`, `.xex`, and `.god` files, skipping symlinks. Same-folder ROM_NAME.png/.jpg/.jpeg artwork is detected case-insensitively. IDs are stable path hashes. This scans `.god` files rather than arbitrary extensionless Games on Demand containers; curate extracted games to avoid duplicate `.xex` entries.
+
+Admin → **Download missing covers** searches the [x360db archive](https://github.com/xenia-manager/x360db). Confirm the suggested title or skip it. Save changed ROM paths before downloading. Downloaded covers are cached in userData/covers and survive rescans; local sidecars take priority. Downloads use fixed source URLs, size/time bounds, and JPEG validation. Covers remain the property of their owners.
+
+## Settings, kiosk behavior, and security
+
+Settings/library/cache live in Electron's userData folder, normally `%APPDATA%/Project Kratos` or `~/.config/Project Kratos` (development may use `project-kratos`). PINs use salted scrypt hashes. Legacy plaintext credentials migrate automatically. A malformed library is preserved and produces an error rather than silently resetting protection.
+
+The launcher is frameless, fullscreen, and sandboxed with context isolation, no renderer Node access, controlled local artwork URLs, and a restrictive CSP. It stays fullscreen underneath Xenia during startup, releases game-interfering shortcuts, and restores focus on process termination or launch failure. Process commands use argument arrays with `shell: false`.
+
+Electron cannot block every OS escape route: Alt+Tab, Windows keys, secure attention sequences, compositor shortcuts, task managers, and physical access need account/OS restrictions. Use a dedicated limited kiosk account and test on the actual computer. Keep PIN protection enabled for child use. The launcher alone is not a security boundary.
+
+## Packaging for people who avoid terminals
+
+The Windows NSIS installer is already configured and built; Linux AppImage and Debian targets are configured for Linux builds. Installers bundle Node/Electron and the NXE theme, so users launch with shortcuts and configure paths in the GUI. They still supply Xenia, games, and on Linux a runner.
+
+| Benefit | Tradeoff |
+| --- | --- |
+| Double-click setup and application shortcuts | Larger download because Electron/Chromium and FFmpeg are bundled |
+| Identical app/assets without npm setup | Separate builds and testing for each OS/architecture |
+| Offline dashboard assets and sounds | Every app/runtime update needs a new package; no automatic updater yet |
+| Familiar Windows uninstall and Mint package management | Unsigned Windows builds may show trust warnings; signing adds cost/setup |
+| Easier support for nontechnical users | Linux still needs compatible Wine/Proton and graphics drivers |
+
+The source code is MIT licensed; recovered Microsoft dashboard images/sounds and Xbox trademarks retain their own ownership and are not covered by MIT. The assets are included at the repository owner's request from their supplied archive. Archive availability does not establish redistribution rights. See [asset attribution](assets/ATTRIBUTION.md). Public distribution requires addressing these asset rights as well as bundled FFmpeg obligations.
+
+## Validation
+
+Run `npm test` for scanner, PIN/session, input, artwork, theme, and sound checks. Windows packaging and hidden Electron verification are performed locally. Linux builds and Mint installation/gameplay require separate target-machine validation. Compiled XUR DATA timelines and the console shell are not fully translated; this launcher recreates the dashboard interface rather than running Xbox dashboard code.
