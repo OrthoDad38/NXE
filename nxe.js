@@ -2,6 +2,7 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const crypto=require('node:crypto');
+const resources=require('./nxe-resources');
 // XUIZ directory: big-endian header, length/offset/name-length records, UTF-16BE names.
 function parseXzp(buffer) {
   if(buffer.length<22 || buffer.toString('ascii',0,4)!=='XUIZ' || buffer.readUInt32BE(8)!==buffer.length)throw new Error('Invalid XUIZ archive');
@@ -31,7 +32,7 @@ async function importTheme(folder,userData,authorize=()=>{}){
   const root=await resolveRoot(folder);authorize();
   const themesRoot=path.join(userData,'nxe-themes');await fs.mkdir(themesRoot,{recursive:true});
   const destination=await fs.mkdtemp(path.join(themesRoot,'import-'));
-  const manifest={version:1,source:root,imported_at:new Date().toISOString(),assets:{},backgrounds:[],inventory:[],notes:[]};
+  const manifest={version:1,source:root,imported_at:new Date().toISOString(),assets:{},backgrounds:[],inventory:[],notes:[],sounds:{},menus:{},modules:[]};
   let total=0;
   async function save(name,bytes){
     if(!isImage(bytes) || bytes.length>16*1024*1024)return null;
@@ -58,8 +59,31 @@ async function importTheme(folder,userData,authorize=()=>{}){
       if(entry.length && /\.(png|jpg)$/i.test(entry.name))await save(`mediasite/${entry.name}`,entry.bytes);
     }
   }catch(error){manifest.notes.push(`mediasite.xzp: ${error.message}`);}
+  const soundNames={right:'snd_panelright.xma',left:'snd_panelleft.xma',select:'snd_buttonselect.xma',back:'snd_buttonback.xma',open:'snd_panelunfold.xma',close:'snd_panelfold.xma',focus:'btn_Focus.xma'};
+  for(const moduleName of ['$flash_dash.xex','$flash_huduiskin.xex','xam.xex']){
+    try{
+      const source=await fs.realpath(path.join(root,moduleName));if(!source.startsWith(root+path.sep))throw Error('Module escapes source folder');
+      const stat=await fs.stat(source);if(stat.size>64*1024*1024)throw Error('Module exceeds size limit');
+      authorize();const decoded=await resources.unpackModule(await fs.readFile(source),destination);
+      const archives=resources.embeddedArchives(decoded.bytes,parseXzp);manifest.modules.push({name:moduleName,version:decoded.version,archives:archives.length});
+      for(const archive of archives)for(const entry of archive.entries){
+        manifest.inventory.push({name:`${moduleName}/${archive.offset}/${entry.name}`,length:entry.length});
+        if(!entry.length)continue;
+        const name=`${moduleName}/${archive.offset}/${entry.name}`;
+        if(/\.(jpg|png)$/i.test(entry.name))await save(name,entry.bytes);
+        if(['SystemScene.xur','dashSysCslSet.xur','MobyChannelScene.xur'].includes(entry.name) && moduleName==='$flash_dash.xex'){
+          try{manifest.menus[entry.name]={...resources.parseXur(entry.bytes),source:name,version:decoded.version};}catch(error){manifest.notes.push(`${name}: ${error.message}`);}
+        }
+        const role=Object.keys(soundNames).find(key=>soundNames[key]===entry.name);
+        if(role && !manifest.sounds[role]){
+          const id=crypto.createHash('sha256').update(name).digest('hex').slice(0,20);
+          try{authorize();const converted=await resources.convertSound(entry.bytes,destination,id);total+=converted.bytes;manifest.assets[id]={file:converted.file,source:name};manifest.sounds[role]=id;}catch(error){manifest.notes.push(`${entry.name}: ${error.message}`);}
+        }
+      }
+    }catch(error){manifest.notes.push(`${moduleName}: ${error.message}`);}
+  }
   if(!manifest.backgrounds.length)throw new Error('No supported NXE wallpapers found');
-  manifest.notes.push('Executable resources, compiled XUR layouts, console fonts and audio are not executed or converted.');
+  manifest.notes.push('Dashboard code is never executed. XUR strings/vectors are decoded; DATA timelines and runtime property binding are not fully translated.');
   authorize();await fs.writeFile(path.join(destination,'manifest.json'),JSON.stringify(manifest,null,2));
   return {directory:destination,selected:manifest.backgrounds.find(b=>b.label.startsWith('Theme1'))?.id || manifest.backgrounds[0].id};
 }
@@ -69,8 +93,16 @@ async function loadTheme(config,userData){
   if(!directory.startsWith(root+path.sep))throw new Error('Invalid imported theme location');
   const manifest=JSON.parse(await fs.readFile(path.join(directory,'manifest.json'),'utf8'));
   if(manifest.version!==1 || !Array.isArray(manifest.backgrounds))throw new Error('Invalid theme manifest');
-  for(const [id,asset] of Object.entries(manifest.assets))if(!/^[a-f0-9]{20}$/.test(id) || !/^[a-f0-9]{20}\.(jpg|png)$/.test(asset.file))throw new Error('Invalid theme asset');
-  return {directory,manifest,selected:config.selected};
+  for(const [id,asset] of Object.entries(manifest.assets))if(!/^[a-f0-9]{20}$/.test(id) || !/^[a-f0-9]{20}\.(jpg|png|wav)$/.test(asset.file))throw new Error('Invalid theme asset');
+  const audio=typeof config.audio?.muted==='boolean' && Number.isFinite(config.audio.volume) && config.audio.volume>=0 && config.audio.volume<=1?config.audio:{volume:.5,muted:false};
+  return {directory,manifest,selected:config.selected,audio};
 }
-function publicTheme(theme){return theme?{backgrounds:theme.manifest.backgrounds.map(b=>({...b,url:`kratos-art://theme/${b.id}`})),selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes}: {backgrounds:[],selected:null};}
+function publicTheme(theme){
+  if(!theme)return {backgrounds:[],selected:null,sounds:{},audio:{volume:.5,muted:false}};
+  const url=id=>`kratos-art://theme/${id}`;
+  const panel=Object.entries(theme.manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/') && a.source.endsWith('/BackgroundPanel.png'));
+  const icons={};for(const [role,name] of Object.entries({settings:'ico_32x_console.png',games:'ico_32x_myGames.png'})){const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.endsWith('/'+name));if(entry)icons[role]=url(entry[0]);}
+  const buttons={};for(const key of ['A','B','X','Y']){const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/') && a.source.endsWith(`/Legend_${key}.png`));if(entry)buttons[key]=url(entry[0]);}
+  return {backgrounds:theme.manifest.backgrounds.map(b=>({...b,url:url(b.id)})),selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes,sounds:Object.fromEntries(Object.entries(theme.manifest.sounds || {}).map(([role,id])=>[role,url(id)])),audio:theme.audio,menu:theme.manifest.menus?.['dashSysCslSet.xur']?{panel:panel?url(panel[0]):null,detailLabel:theme.manifest.menus['dashSysCslSet.xur'].strings.find(s=>s==='Current Setting') || 'Current Setting',source:theme.manifest.menus['dashSysCslSet.xur'].source,version:theme.manifest.menus['dashSysCslSet.xur'].version}:null,icons,buttons};
+}
 module.exports={parseXzp,importTheme,loadTheme,publicTheme};

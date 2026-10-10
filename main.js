@@ -7,9 +7,10 @@ const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
 const covers = require('./covers');
 const nxe = require('./nxe');
+app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 let importedTheme=null;
 const coverService = covers.createService((...args) => net.fetch(...args));
-protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true,stream:true } }]);
 let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
 let queue = Promise.resolve();
 let pickerOpen = false, shortcutNoticeShown = false;
@@ -100,8 +101,14 @@ else {
       requireAdmin();
       if(id!==null && !importedTheme?.manifest.backgrounds.some(b=>b.id===id))throw new Error('Unknown theme');
       if(!importedTheme)return nxe.publicTheme(null);
-      const config={directory:importedTheme.directory,selected:id};const next={...library,nxe_theme:config};
+      const config={directory:importedTheme.directory,selected:id,audio:importedTheme.audio};const next={...library,nxe_theme:config};
       await scanner.saveLibrary(libraryFile,next);library=next;importedTheme.selected=id;return nxe.publicTheme(importedTheme);
+    }));
+    handle('admin:theme-audio',audio=>serialized(async()=>{
+      requireAdmin();if(!importedTheme)throw Error('Import an NXE theme first');
+      if(typeof audio?.muted!=='boolean'||typeof audio.volume!=='number'||!Number.isFinite(audio.volume)||audio.volume<0||audio.volume>1)throw Error('Invalid sound settings');
+      const config={directory:importedTheme.directory,selected:importedTheme.selected,audio:{muted:audio.muted,volume:audio.volume}};
+      const next={...library,nxe_theme:config};await scanner.saveLibrary(libraryFile,next);library=next;importedTheme.audio=config.audio;return nxe.publicTheme(importedTheme);
     }));
     handle('admin:unlock', pin => {
       if (Date.now() < blockedUntil) throw new Error('Too many attempts. Wait 30 seconds.');

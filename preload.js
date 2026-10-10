@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTheme: () => ipcRenderer.invoke('theme:get'),
   importTheme: () => ipcRenderer.invoke('admin:theme-import'),
   selectTheme: id => ipcRenderer.invoke('admin:theme-select',id),
+  setThemeAudio: audio => ipcRenderer.invoke('admin:theme-audio',audio),
   launchXeniaGame: id => ipcRenderer.invoke('game:launch', id),
   unlockAdmin: pin => ipcRenderer.invoke('admin:unlock', pin),
   lockAdmin: () => ipcRenderer.invoke('admin:lock'),

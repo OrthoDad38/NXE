@@ -25,3 +25,15 @@ PIN-protected folder import, immutable source access, local image cache and mani
 5. Locate and convert supported navigation/select/back sounds if recoverable. Add volume and mute controls when audio exists.
 
 Imported Microsoft assets remain local to the user's installation. No executable dashboard files, extracted Microsoft images, account/profile files or SDK components are committed to GitHub or included in the installer.
+
+## Second milestone — 1.2.0
+
+The XEX execution headers establish that the plain dash.xex/xam.xex are older 2.0.1888.0 modules. The $flash_dash.xex and $flash_huduiskin.xex are NXE 2.0.7371.0. The original 2020 log does not describe current compatibility; Xbox code was never launched in this investigation.
+
+The compressed NXE payloads were decoded using authenticated AES-CBC/LZX blocks wrapped as standard cabinets. Windows expand.exe recovered the base images. The actual NXE dashboard yielded 27 embedded XUIZ archives; its HUD skin yielded two. Source format reference: https://github.com/xenia-project/xenia/blob/master/src/xenia/kernel/util/xex2_info.h.
+
+Reimport now recovers 679 cached assets and indexes 5,403 combined entries. Seven effects are mapped: snd_panelleft, snd_panelright, snd_buttonselect, snd_buttonback, snd_panelunfold, snd_panelfold (from $flash_dash.xex), and btn_Focus (from $flash_huduiskin.xex). All seven are from NXE 2.0.7371.0, converted to PCM WAV. The older xam module is scanned as a fallback; it does not replace the recovered NXE sounds.
+
+XUIB STRN and VECT sections are parsed with bounds validation. The settings adapter uses original BackgroundPanel.png and Legend_A/B/X/Y.png, the Current Setting string, and the list/detail/select/back structure found in the original resources. DATA timelines/object bindings remain unparsed. This is partial menu translation, not execution of the console UI engine or a complete XUR interpreter.
+
+Next work: decode DATA object properties/timelines, measure animation fidelity, and map additional shell resources. Existing PIN controls and launcher-specific settings remain authoritative.
