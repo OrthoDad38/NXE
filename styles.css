@@ -49,7 +49,7 @@ button:focus-visible,input:focus-visible { outline:3px solid #79a800; outline-of
 @media(max-width:750px) { .footer-controls { gap:10px; } .footer-controls>span:last-child { display:none; } .key-grid { gap:3px; }.key-grid button { padding:8px 3px; } }
 @media(prefers-reduced-motion:reduce) { .game-card { transition:none; } }
 /* Short floor reflections keep the navigation clear, as on the NXE dashboard. */
-.reflection { height:100%; opacity:.13; mask-image:linear-gradient(to top,#000,transparent 25%); }
+.reflection { height:100%; opacity:.22; mask-image:linear-gradient(to top,#000,transparent 55%); }
 .active-subtitle { display:none; }.empty-library .active-subtitle { display:block; }
 .tile-face { background:linear-gradient(180deg,#ebff00 0%,#b9ec00 35%,#8ac100 60%,#365e00 82%,#062308 100%); }
 .game-card.active .tile-face { background:radial-gradient(ellipse at 40% 0%,#ffff6c,transparent 60%),linear-gradient(180deg,#eaff00 0%,#b9ec00 35%,#8ac100 60%,#365e00 82%,#031a07 100%); }

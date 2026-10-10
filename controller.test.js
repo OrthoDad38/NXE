@@ -4,6 +4,20 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+
+test('cover reflection retains artwork source when the tile is cloned',()=>{
+  class Element {
+    constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.style={removeProperty(){}};this.classList={toggle(){},add(){},remove(){}};}
+    append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}
+    setAttribute(){}addEventListener(){}
+    cloneNode(deep){const copy=new Element(this.tagName);copy.src=this.src;copy.alt=this.alt;if(deep)copy.children=this.children.map(child=>child.cloneNode(true));return copy;}
+  }
+  const track=new Element('div');
+  const context=vm.createContext({window:{electronAPI:{},addEventListener(){},matchMedia(){return {matches:true};}},document:{getElementById(id){return id==='carousel-track'?track:{};},createElement(tag){return new Element(tag);}},requestAnimationFrame(){},navigator:{}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'renderer.js'),'utf8')+'\nupdateCarouselPositions=()=>{};gamesList=[{id:"cover",title:"Game",cover_art_path:"kratos-art://cover/cover",uses_fallback_art:false}];renderCarousel();',context);
+  const [face,reflection]=track.children[0].children;
+  assert.equal(face.children[0].src,'kratos-art://cover/cover');assert.equal(reflection.children[0].src,face.children[0].src);
+});
 test('admin chord suppresses game launch and navigation; A triggers only on press', () => {
   const actions=[];
   const context=vm.createContext({ window:{ electronAPI:{}, addEventListener(){} }, document:{getElementById(){return {}; }}, requestAnimationFrame(){}, navigator:{} });

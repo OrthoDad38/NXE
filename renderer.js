@@ -95,7 +95,7 @@ function renderCarousel() {
       const img = node('img'); img.alt = game.title;
       img.addEventListener('load',()=>{card.style.setProperty('--cover-ratio',String(img.naturalWidth/img.naturalHeight));updateCarouselPositions();},{once:true});
       img.addEventListener('error', () => {setArt(fallback(game.title));updateCarouselPositions();}, { once:true });
-      setArt(img);img.src = game.cover_art_path;
+      img.src = game.cover_art_path;setArt(img);
     } else setArt(fallback(game.title));
     track.append(card);
   });
