@@ -18,6 +18,9 @@ const settingsRows=[
 const settingsIndex=key=>settingsRows.findIndex(row=>row.field===key||row.action===key);
 let coverQueue = [], coverMatches = [], coverPosition = 0;
 let themeState={backgrounds:[],selected:null};
+let discView=null;
+function displayedGames(){return discView?discView.game.discs:gamesList;}
+function returnToLibrary(){if(!discView)return;currentIndex=discView.returnIndex;discView=null;renderCarousel();}
 function applyTheme(state){
   window.uiSounds?.configure(state);
   window.uiMusic?.configure(state);
@@ -91,13 +94,14 @@ function fallback(title) {
 }
 function renderCarousel() {
   track.replaceChildren();
-  gamesList.forEach(game => {
+  displayedGames().forEach(game => {
     const card = node('div','game-card');
     function setArt(art) {
       card.classList.toggle('has-cover',art.tagName==='IMG');
       card.style.removeProperty('--cover-ratio');
       const face=node('div','tile-face');face.append(art);
       card.replaceChildren(face);const reflection=face.cloneNode(true);reflection.classList.add('reflection');reflection.setAttribute('aria-hidden','true');card.append(reflection);
+      if(discView||game.discs)card.append(node('div','disc-badge',discView?game.title:`${game.discs.length} discs`));
       // The recovered shadow bitmaps include square corner borders. Use the
       // card's rounded CSS shadow so they cannot show behind rounded artwork.
     }
@@ -109,13 +113,15 @@ function renderCarousel() {
     } else setArt(fallback(game.title));
     track.append(card);
   });
-  currentIndex = Math.max(0, Math.min(currentIndex, gamesList.length - 1)); updateCarouselPositions();
+  currentIndex = Math.max(0, Math.min(currentIndex, displayedGames().length - 1)); updateCarouselPositions();
   if(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) track.animate?.([{opacity:0,transform:'translateX(35px) scale(.97)'},{opacity:1,transform:'translateX(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.75,.25,1)'});
 }
 function updateCarouselPositions() {
-  titleDisplay.textContent = gamesList[currentIndex]?.title || 'No Games Found';
-  document.getElementById('subtitle').textContent = gamesList.length ? 'Press A to Launch' : 'Admin: hold LB + RB + D-Pad Up, then press A';
-  document.getElementById('counter').textContent = gamesList.length ? `${currentIndex + 1} of ${gamesList.length}` : '0 games';
+  const list=displayedGames();
+  titleDisplay.textContent = list[currentIndex]?.title || 'No Games Found';
+  const heading=document.querySelector?.('.brand-title');if(heading)heading.textContent=discView?`${discView.game.title} · Choose disc`:'Game Library';
+  document.getElementById('subtitle').textContent = discView?'A: Launch selected disc · B: Return to Game Library':list[currentIndex]?.discs?'Press A to Choose Disc':gamesList.length?'Press A to Launch':'Admin: press Start';
+  document.getElementById('counter').textContent = list.length ? `${currentIndex + 1} of ${list.length}${discView?' discs':''}` : '0 games';
   document.body.classList.toggle('empty-library', !gamesList.length);
   [...track.children].forEach((card,index) => {
     const offset = index-currentIndex, absOffset = Math.abs(offset);
@@ -130,18 +136,19 @@ function updateCarouselPositions() {
     card.style.transform=`translateX(${distance}px) scale(${scales[offset]})`;
   });
 }
-function selectNext(delta) { const next=Math.max(0,Math.min(gamesList.length-1,currentIndex+delta)); if(next!==currentIndex){currentIndex=next;updateCarouselPositions();window.uiSounds?.play(delta<0?'left':'right');} }
+function selectNext(delta) { const next=Math.max(0,Math.min(displayedGames().length-1,currentIndex+delta)); if(next!==currentIndex){currentIndex=next;updateCarouselPositions();window.uiSounds?.play(delta<0?'left':'right');} }
 function status(message) { document.getElementById('status').textContent=message || ''; }
 function launchScreen(visible, title = '') {
   document.getElementById('launch-overlay').classList.toggle('hidden', !visible);
   document.getElementById('launch-title').textContent = title;
 }
 async function launchCurrentGame() {
-  if(busy || !gamesList[currentIndex]) return;
+  const game=displayedGames()[currentIndex];if(busy || !game) return;
   window.uiSounds?.play('select');
+  if(!discView && game.discs){discView={game,returnIndex:currentIndex};currentIndex=0;renderCarousel();return;}
   window.uiMusic?.stopForGame();
-  busy=true; status('Launching game…');launchScreen(true, gamesList[currentIndex].title);
-  try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false;launchScreen(false);window.uiMusic?.resumeDashboard();status(error.message); }
+  busy=true; status('Launching game…');launchScreen(true,discView?`${discView.game.title} · ${game.title}`:game.title);
+  try { await api.launchXeniaGame(game.id); } catch(error) { busy=false;launchScreen(false);window.uiMusic?.resumeDashboard();status(error.message); }
 }
 function modal(title,help) {
   document.body.classList.add('modal-open');
@@ -165,7 +172,7 @@ function buttons(labels,className,action) {
 function selectableButtons() { return [...content.querySelectorAll(mode==='keyboard'?'.key-grid button':'button')]; }
 function highlight(withSound=false,sound='right') { if(withSound)window.uiSounds?.play(mode==='pin'?sound:'focus');selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected));if(mode==='settings')updateSettingsDetails(); }
 async function openPin() {
-  if(busy || mode!=='library')return;busy=true;
+  if(busy || mode!=='library')return;returnToLibrary();busy=true;
   try {
     const access=await api.getAdminAccess();window.uiSounds?.play('open');mode='pin';pin='';selected=0;
     modal('Administrator PIN','Type PIN + Enter, or use the keypad. D-pad: choose · A: enter · X: erase · Y: submit · Esc/B: cancel');renderPin();
@@ -253,7 +260,7 @@ async function submitPin(withSound=true) {
 function finishEdit() { settings[editKey]=editText;editText='';mode='settings';selected=settingsIndex(editKey);modal('Administrator settings','D-pad: choose · A: edit/select · B: lock and return');renderSettings(); }
 function input(action) {
   if(busy)return;
-  if(mode==='library'){if(action==='left')selectNext(-1);else if(action==='right')selectNext(1);else if(action==='lb')selectNext(-5);else if(action==='rb')selectNext(5);else if(action==='a')launchCurrentGame();return;}
+  if(mode==='library'){if(action==='b'&&discView){window.uiSounds?.play('back');returnToLibrary();}else if(action==='left')selectNext(-1);else if(action==='right')selectNext(1);else if(action==='lb')selectNext(-5);else if(action==='rb')selectNext(5);else if(action==='a')launchCurrentGame();return;}
   if(action==='b'){window.uiSounds?.play('back');if(mode==='keyboard')cancelEdit();else if(mode==='cover-games')renderCoverTools();else if(['covers','themes','cover-tools'].includes(mode))returnSettings();else closeModal();return;}
   if(action==='a')return activate();
   if(action==='x'){if(mode==='pin'){window.uiSounds?.play('left');pin=pin.slice(0,-1);renderPin();}else if(mode==='keyboard'){editText=editText.slice(0,-1);renderKeyboard();}return;}

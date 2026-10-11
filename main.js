@@ -10,6 +10,7 @@ const nxe = require('./nxe');
 const {selectUserData}=require('./storage');
 const {musicResponse}=require('./music-stream');
 const {prepareHandoff}=require('./handoff');
+const {groupGames}=require('./multidisc');
 app.setName('NXE');
 app.setPath('userData',selectUserData(app.getPath('appData'),app.getPath('userData'),app.isPackaged));
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
@@ -18,12 +19,17 @@ let backgroundMusic;
 let coverRevision=Date.now();
 const coverService = covers.createService((...args) => net.fetch(...args));
 protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true,stream:true } }]);
-let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
+let win, library, libraryFile, child,launchPending=false, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
 let queue = Promise.resolve();
 let pickerOpen = false, shortcutNoticeShown = false;
 function serialized(work) { const result = queue.then(work); queue = result.catch(() => {}); return result; }
 function requireAdmin() { if (Date.now() > adminUntil) throw new Error('Admin session expired. Open administrator access again.'); }
-function publicGames() { return library.games.map(g => ({ id: g.id, title: g.title, uses_fallback_art: g.uses_fallback_art,can_replace_cover:covers.isCachedCover(g,path.join(app.getPath('userData'),'covers')), cover_art_path: g.cover_art_path ? `kratos-art://cover/${g.id}?v=${coverRevision}` : null })); }
+function publicGames() { return groupGames(library.games).map(g=>{
+  const art=g.discs?.find(d=>d.cover_art_path)||g;
+  const cover=art.cover_art_path?`kratos-art://cover/${art.id}?v=${coverRevision}`:null;
+  return {id:g.id,title:g.title,uses_fallback_art:!cover,can_replace_cover:covers.isCachedCover(art,path.join(app.getPath('userData'),'covers')),cover_art_path:cover,
+    ...(g.discs?{discs:g.discs.map(d=>({id:d.id,number:d.disc_number,title:`Disc ${d.disc_number}`,uses_fallback_art:!cover,cover_art_path:cover}))}:{})};
+}); }
 function shortcuts() {
   // Close, devtools and fullscreen shortcuts are blocked locally by the window.
   // Windows reserves task switching and the Windows key; Super alone is not an accelerator.
@@ -48,19 +54,21 @@ function handle(channel, fn) {
   });
 }
 async function launch(id) {
-  if (child) throw new Error('A game is already running');
+  if (child||launchPending) throw new Error('A game is already running');
   const game = library.games.find(g => g.id === id);
   if (!game) throw new Error('Unknown game');
   await fs.access(game.rom_path); await fs.access(library.xenia_executable);
   // Re-check after asynchronous validation to prevent concurrent launches.
-  if (child) throw new Error('A game is already running');
+  if (child||launchPending) throw new Error('A game is already running');
+  launchPending=true;
   adminUntil = 0;
   const linux = process.platform === 'linux';
   const command = linux ? library.runner || 'wine' : library.xenia_executable;
   const args = linux ? [...(library.runner_args || []), library.xenia_executable, '--fullscreen', game.rom_path] : ['--fullscreen', game.rom_path];
   const handoff=prepareHandoff(win,{platform:process.platform});
-  try{child = spawn(command, args, { shell: false, cwd: path.dirname(library.xenia_executable), stdio: 'ignore', windowsHide: false });}
+  try{await handoff.ready;child = spawn(command, args, { shell: false, cwd: path.dirname(library.xenia_executable), stdio: 'ignore', windowsHide: false });}
   catch(error){handoff.cancel();throw error;}
+  finally{launchPending=false;}
   let finished = false;
   const finish = state => { if (!finished) { finished = true;handoff.cancel(); recover(state); } };
   child.once('error', error => finish({ running: false, error: `Launch failed: ${error.message}` }));
@@ -148,13 +156,13 @@ else {
       requireAdmin();
       const game = library.games.find(g => g.id === id);
       if (!game) throw new Error('Unknown game');
-      const results = await coverService.search(game.title);
+      const results = await coverService.search(groupGames(library.games).find(g=>g.id===id)?.title || game.title);
       requireAdmin(); return results;
     });
     handle('admin:cover-download', (id, candidate) => serialized(async () => {
       requireAdmin();
       const game = library.games.find(g => g.id === id && (g.uses_fallback_art || covers.isCachedCover(g,coverDirectory)));
-      if (!game || !(await coverService.search(game.title)).some(g => g.id === candidate)) throw new Error('Invalid cover match');
+      if (!game || !(await coverService.search(groupGames(library.games).find(g=>g.id===id)?.title || game.title)).some(g => g.id === candidate)) throw new Error('Invalid cover match');
       const bytes = await coverService.download(candidate);
       requireAdmin();
       await fs.mkdir(coverDirectory, { recursive: true });

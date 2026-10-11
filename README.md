@@ -144,11 +144,19 @@ The launcher is frameless, fullscreen, and sandboxed with context isolation, no 
 
 Electron cannot block every OS escape route: Alt+Tab, Windows keys, secure attention sequences, compositor shortcuts, task managers, and physical access need account/OS restrictions. Use a dedicated limited kiosk account and test on the actual computer. Keep PIN protection enabled for child use. The launcher alone is not a security boundary.
 
+## Multi-disc games
+
+Explicit filenames such as `Blue Dragon (USA, Europe) (Disc 1).iso` and `(Disc 2).iso` are grouped into one carousel tile with a disc-count badge. A opens a secondary disc carousel; D-pad/stick selects, A launches the selected disc, and B/Escape returns to the original library position. The disc picker shares the game's cover and keeps dashboard music playing until launch. After the emulator closes, the picker remains available so another disc can be selected.
+
+Grouping recognizes numbered Disc/Disk/CD markers and supported extracted XEX disc-folder naming. It is conservative: different directories, region/edition tags, and file formats remain separate; duplicate numbers are left ungrouped rather than guessed. Only present files appear, and no files are merged/moved. Original per-disc IDs and downloaded covers remain in the underlying library/cache.
+
+This chooses the starting disc. Xenia Canary's in-game `XamSwapDisc` still opens its own disc-file picker; NXE does not inject a disc into a running emulator. See [Canary's disc handling](https://github.com/xenia-canary/xenia-canary/blob/canary_experimental/src/xenia/kernel/xam/xam_content.cc). Save/exit and choose the next disc only when supported by the particular game and save point.
+
 ## Windows fullscreen handoff
 
-On Windows, the loading dashboard temporarily stays above Xenia's startup window. A hidden, bundled PowerShell helper watches only the launched emulator process. It checks window visibility, borderless style, and monitor bounds at the correct DPI; after three stable fullscreen samples it releases the dashboard and requests foreground focus for Xenia. Game termination or launch errors cancel the helper and restore normal kiosk focus. The helper stops after 30 seconds, with a 35-second outer fallback, so unsupported window behavior cannot trap the loading screen.
+On Windows, the native shield is armed before Xenia is spawned. It actively keeps the loading dashboard above the emulator and lowers only windows owned by the launched emulator process. It enumerates visible windows rather than relying on a cached MainWindowHandle, checks borderless monitor-sized bounds with DPI/DWM handling, and waits for 1.8 seconds of continuous fullscreen before handing over. This masks the windowed and initial fullscreen startup frames seen in the supplied recording. Helper stderr is reported to the terminal if arming fails.
 
-This detects a fullscreen window, not completion of game loading or its first rendered game frame. Xenia variants, exclusive fullscreen, multiple monitors, and Windows focus policy can affect the handoff; test your actual build. Linux keeps its existing Wine/Proton startup behavior. The helper requires Windows PowerShell; if unavailable, the usual startup behavior is restored.
+Arming has an eight-second fallback; process watching has a 40-second helper deadline and 45-second outer timeout. Exit/errors cancel the helper and remove the shield. The settling interval is not a game-specific signal that loading has completed; a slow game may still show its own loading screen after handoff. Linux retains its existing Wine/Proton behavior.
 
 API references: [Electron always-on-top](https://www.electronjs.org/docs/latest/api/browser-window/#winsetalwaysontopflag-level-relativelevel), [Microsoft monitor APIs](https://learn.microsoft.com/en-us/windows/win32/gdi/multiple-display-monitors-functions), and [foreground restrictions](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow).
 

@@ -1,6 +1,6 @@
 {
   "name": "nxe-launcher",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "NXE — New Xenia Experience, a controller-first Xenia kiosk launcher",
   "main": "main.js",
   "author": "NXE",
@@ -41,6 +41,7 @@
       "ui-music.js",
       "music-stream.js",
       "handoff.js",
+      "multidisc.js",
       "scripts/windows-handoff.ps1",
       "FFMPEG-NOTICE.md",
       "index.html",
