@@ -1,23 +1,19 @@
 # NXE — New Xenia Experience
 
-**NXE** means **New Xenia Experience** (formerly Project Kratos). The GitHub repository URL remains unchanged. Close the older launcher before updating or installing NXE.
+A fullscreen, controller-first Electron launcher for Xenia Canary on Windows 10/11 and Linux Mint. The built-in NXE theme includes the Xbox 360 dashboard background, nine additional wallpapers, original scene artwork, button legends, and seven navigation/select/back/menu sounds. No dashboard import, separate theme download, or internet connection is required to use them. Games and Xenia are not included.
 
-A fullscreen, controller-first Electron launcher for Xenia Canary on Windows 10/11 and Linux Mint. The built-in NXE theme includes the recovered green dashboard background, nine additional wallpapers, original scene artwork, button legends, and seven navigation/select/back/menu sounds. No dashboard import, separate theme download, or internet connection is required to use them. Games and Xenia are not included.
-
-Game Library uses rounded cover tiles with the entire cover visible, no title overlay, and floor reflections. Missing covers show green disc tiles and cleaned game titles. There is no avatar. The silver floor, ripples, rounded shadow, smooth menu frame, and movement are rendered in CSS/JavaScript. Convection is preferred when installed; the font is not bundled and system fonts provide a fallback.
+The Game Library uses game cover art tiles, with the classic floor reflections. Missing covers show green disc tiles and cleaned game titles.
 
 ## Windows: install without a terminal
 
 Run the **NXE Setup VERSION.exe** installer supplied with the build. It includes Electron, the launcher, NXE assets, and the sound conversion tool. It creates desktop and Start menu shortcuts. Open NXE from either shortcut; Node.js and npm are not required on the installed machine. Xenia Canary and your games must be supplied separately.
-
-For maintainers, `npm run build:windows` creates the installer in `dist/`. Installers are currently unsigned; code signing is needed for a polished public release. Builds are not automatically uploaded to GitHub Releases.
 
 ## Source checkout: Windows or Linux
 
 Install Node.js 22 or newer with npm and Git. Clone the repository and install the locked dependencies:
 
 ```sh
-git clone https://github.com/OrthoDad38/project-kratos.git
+git clone https://github.com/OrthoDad38/NXE.git
 cd project-kratos
 npm ci
 npm run start
@@ -112,8 +108,6 @@ For Proton, select the absolute Proton script path as runner and set runner argu
 
 PIN protection starts enabled, including for existing libraries without the new preference. Disabling it intentionally allows any user to open settings and exit the kiosk. Main-process caller validation, session checks, and restricted IPC remain active in either mode.
 
-The administrator menu order is: ROM directory, Xenia executable, Browse ROM, Browse Xenia, Linux runner, Runner arguments, Download missing covers, Save and rescan, NXE Themes, New PIN, PIN protection, Return to games, Exit to Desktop.
-
 ## Built-in NXE theme, wallpapers, and sound
 
 Fresh installations automatically use **Original NXE · Green dashboard**. Existing wallpaper, audio, and imported-theme preferences are retained when available. If an older import is missing, NXE falls back to the built-in NXE theme.
@@ -121,8 +115,6 @@ Fresh installations automatically use **Original NXE · Green dashboard**. Exist
 Admin → **NXE themes** offers **Original NXE · Green dashboard**, **Wallpaper 1** through **Wallpaper 9**, sound volume (0/25/50/75/100%), mute, and Test sound. Theme/audio changes save immediately. The seven cues are left, right, select, back, open, close, and focus. Playback failures do not block navigation.
 
 All 679 recovered image/audio assets and resource metadata are included under `assets/nxe/`; no Xbox executable, account/profile, ROM, or emulator binary is included. Bundled sound files are already converted to PCM WAV, so ordinary playback does not need conversion or access to the original download folder. Paths in saved built-in preferences use the portable `builtin` identifier.
-
-The menu no longer shows theme import, built-in reset, or the earlier NXE background options. Existing imported caches and wallpaper preferences still load; asset IDs are unchanged by renaming the wallpapers. The resource importer remains in the codebase for compatibility. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
 
 ## Dashboard background music
 
