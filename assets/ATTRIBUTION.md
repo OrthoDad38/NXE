@@ -23,3 +23,8 @@ Xbox trademarks belong to Microsoft. NXE is an independent launcher.
 `assets/nxe/` contains 679 recovered JPEG/PNG/PCM WAV assets and their manifest from the repository owner's supplied Xbox 360 NXE 2.0.7371.0 archive. Source identifiers in the manifest preserve the originating module/archive/resource names. The top-level source description is sanitized; local user paths and Xbox executable files are not distributed. Nine Theme0/Theme1/Theme2 wallpapers plus the original dashboard background are selectable. Seven original sound cues were converted locally to WAV.
 
 Microsoft retains ownership of its dashboard artwork, recordings, and Xbox trademarks. These assets are not licensed under the repository's MIT source-code license. Inclusion at the owner's request is not a claim of redistribution permission or Microsoft affiliation.
+
+## Dashboard background music (1.6.0)
+
+assets/dashboard-music.ogg is converted to Ogg Vorbis from the user-selected video [XBOX 360 Dashboard Music - Menu Music - Avatar Music](https://www.youtube.com/watch?v=wM_R2bnZakY), uploaded by cristiano narita. The source is approximately 323 seconds. It is included at the repository owner's request for dashboard background playback. The recording retains its original ownership and is not covered by the MIT source-code license. No downloader is included in the app.
+

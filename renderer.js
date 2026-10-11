@@ -11,6 +11,7 @@ let coverQueue = [], coverMatches = [], coverPosition = 0;
 let themeState={backgrounds:[],selected:null};
 function applyTheme(state){
   window.uiSounds?.configure(state);
+  window.uiMusic?.configure(state);
   document.body.classList.toggle('nxe-menu',!!state.menu);
   themeState=state;const image=document.getElementById('theme-wallpaper'),background=state.backgrounds.find(b=>b.id===state.selected);
   const scene=state.scene || {},horizon=document.getElementById('nxe-horizon');
@@ -127,8 +128,9 @@ function launchScreen(visible, title = '') {
 async function launchCurrentGame() {
   if(busy || !gamesList[currentIndex]) return;
   window.uiSounds?.play('select');
+  window.uiMusic?.stopForGame();
   busy=true; status('Launching game…');launchScreen(true, gamesList[currentIndex].title);
-  try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false;launchScreen(false);status(error.message); }
+  try { await api.launchXeniaGame(gamesList[currentIndex].id); } catch(error) { busy=false;launchScreen(false);window.uiMusic?.resumeDashboard();status(error.message); }
 }
 function modal(title,help) {
   document.body.classList.add('modal-open');
@@ -284,7 +286,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('admin-button').addEventListener('click',openPin);
   document.getElementById('close-admin').addEventListener('click',()=>{if(!busy)closeModal();});
   if(!api){status('Start with npm run start to enable the native launcher.');renderCarousel();return;}
-  api.onGameState(state=>{busy=state.running;if(!state.running)launchScreen(false);status(state.error || (state.running?'Game running…':''));});
+  api.onGameState(state=>{busy=state.running;if(state.running)window.uiMusic?.stopForGame();else{launchScreen(false);window.uiMusic?.resumeDashboard();}status(state.error || (state.running?'Game running…':''));});
   try{applyTheme(await api.getTheme());}catch(error){status(`Theme unavailable: ${error.message}`);}
   try{const library=await api.getLibrary();gamesList=library.games;status(library.error);renderCarousel();}catch(error){status(error.message);renderCarousel();}
   new GamepadWheelController();

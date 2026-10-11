@@ -106,7 +106,7 @@ async function loadTheme(config,userData,builtinDirectory=path.join(__dirname,'a
 }
 function themeConfig(theme){return {directory:theme.builtin?'builtin':theme.directory,selected:theme.selected,audio:theme.audio};}
 function publicTheme(theme){
-  if(!theme)return {backgrounds:[],selected:null,sounds:{},audio:{volume:.5,muted:false}};
+  if(!theme)return {backgrounds:[],selected:null,sounds:{},audio:{volume:.5,muted:false},music:'kratos-art://music/dashboard'};
   const url=id=>`kratos-art://theme/${id}`;
   const panel=Object.entries(theme.manifest.assets).find(([,a])=>a.source.startsWith('$flash_dash.xex/') && a.source.endsWith('/BackgroundPanel.png'));
   const icons={};for(const [role,name] of Object.entries({settings:'ico_32x_console.png',games:'ico_32x_myGames.png'})){const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.endsWith('/'+name));if(entry)icons[role]=url(entry[0]);}
@@ -117,6 +117,6 @@ function publicTheme(theme){
   const shadowNames=['TopLeft','Top','TopRight','Left','Right','BottomLeft','Bottom','BottomRight'];scene.coverShadows=shadowNames.map(name=>{const entry=Object.entries(theme.manifest.assets).find(([,a])=>a.source.endsWith(`/GameDetails_BoxArtDropShadow${name}.png`));return entry?url(entry[0]):null;});
   const backgrounds=theme.manifest.backgrounds.map((b,index)=>({...b,label:`Wallpaper ${index+1}`,url:url(b.id)}));
   if(scene.background&&!backgrounds.some(b=>b.url===scene.background))backgrounds.unshift({id:scene.background.split('/').at(-1),label:'Original NXE · Green dashboard',url:scene.background});
-  return {backgrounds,selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes,sounds:Object.fromEntries(Object.entries(theme.manifest.sounds || {}).map(([role,id])=>[role,url(id)])),audio:theme.audio,menu:theme.manifest.menus?.['dashSysCslSet.xur']?{panel:panel?url(panel[0]):null,detailLabel:theme.manifest.menus['dashSysCslSet.xur'].strings.find(s=>s==='Current Setting') || 'Current Setting',source:theme.manifest.menus['dashSysCslSet.xur'].source,version:theme.manifest.menus['dashSysCslSet.xur'].version}:null,icons,buttons,scene};
+  return {backgrounds,selected:theme.selected,assetCount:Object.keys(theme.manifest.assets).length,resourceCount:theme.manifest.inventory.length,notes:theme.manifest.notes,sounds:Object.fromEntries(Object.entries(theme.manifest.sounds || {}).map(([role,id])=>[role,url(id)])),audio:theme.audio,menu:theme.manifest.menus?.['dashSysCslSet.xur']?{panel:panel?url(panel[0]):null,detailLabel:theme.manifest.menus['dashSysCslSet.xur'].strings.find(s=>s==='Current Setting') || 'Current Setting',source:theme.manifest.menus['dashSysCslSet.xur'].source,version:theme.manifest.menus['dashSysCslSet.xur'].version}:null,icons,buttons,scene,music:'kratos-art://music/dashboard'};
 }
 module.exports={parseXzp,importTheme,loadTheme,publicTheme,themeConfig};

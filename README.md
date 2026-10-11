@@ -122,6 +122,12 @@ All 679 recovered image/audio assets and resource metadata are included under `a
 
 The menu no longer shows theme import, built-in reset, or the earlier NXE background options. Existing imported caches and wallpaper preferences still load; asset IDs are unchanged by renaming the wallpapers. The resource importer remains in the codebase for compatibility. See [NXE-ASSETS.md](NXE-ASSETS.md) and [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md).
 
+## Dashboard background music
+
+The app includes the Xbox 360 dashboard/menu audio requested from [this video](https://www.youtube.com/watch?v=wM_R2bnZakY), converted to local Ogg Vorbis. It starts with the dashboard and loops offline, including while using admin menus. Selecting a game stops the background track immediately. When the emulator exits or launching fails, the dashboard restarts the track from the beginning. Navigation cues remain independent.
+
+The NXE themes volume/mute settings control both the cues and background music. The music plays at 40% of the cue volume so it stays behind navigation sounds. Switching wallpapers or changing volume does not restart the track. Source attribution is recorded in assets/ATTRIBUTION.md.
+
 ## Games and cover artwork
 
 Scanning recurses through real directories for `.iso`, `.xex`, and `.god` files, skipping symlinks. Same-folder ROM_NAME.png/.jpg/.jpeg artwork is detected case-insensitively. IDs are stable path hashes. This scans `.god` files rather than arbitrary extensionless Games on Demand containers; curate extracted games to avoid duplicate `.xex` entries.

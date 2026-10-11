@@ -8,10 +8,12 @@ const scanner = require('./scanner');
 const covers = require('./covers');
 const nxe = require('./nxe');
 const {selectUserData}=require('./storage');
+const {musicResponse}=require('./music-stream');
 app.setName('NXE');
 app.setPath('userData',selectUserData(app.getPath('appData'),app.getPath('userData'),app.isPackaged));
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 let importedTheme=null;
+let backgroundMusic;
 const coverService = covers.createService((...args) => net.fetch(...args));
 protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true,stream:true } }]);
 let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
@@ -79,6 +81,10 @@ else {
     try { library.games = await covers.applyCached(await scanner.scanDirectory(library.rom_directory), coverDirectory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
     protocol.handle('kratos-art', request => {
       const url = new URL(request.url);
+      if(url.hostname==='music' && url.pathname==='/dashboard'){
+        backgroundMusic ||= fs.readFile(path.join(__dirname,'assets','dashboard-music.ogg'));
+        return backgroundMusic.then(bytes=>musicResponse(bytes,request.headers.get('range')));
+      }
       if(url.hostname==='theme'){
         const asset=importedTheme?.manifest.assets[url.pathname.slice(1)];
         return asset?net.fetch(pathToFileURL(path.join(importedTheme.directory,asset.file)).href):new Response('Not found',{status:404});
