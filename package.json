@@ -1,6 +1,6 @@
 {
   "name": "nxe-launcher",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "NXE — New Xenia Experience, a controller-first Xenia kiosk launcher",
   "main": "main.js",
   "author": "NXE",
@@ -40,6 +40,8 @@
       "ui-sounds.js",
       "ui-music.js",
       "music-stream.js",
+      "handoff.js",
+      "scripts/windows-handoff.ps1",
       "FFMPEG-NOTICE.md",
       "index.html",
       "renderer.js",
@@ -51,7 +53,8 @@
       "target": "nsis"
     },
     "asarUnpack": [
-      "node_modules/ffmpeg-static/ffmpeg*"
+      "node_modules/ffmpeg-static/ffmpeg*",
+      "scripts/windows-handoff.ps1"
     ],
     "nsis": {
       "createDesktopShortcut": "always",

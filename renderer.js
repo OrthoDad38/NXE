@@ -7,6 +7,15 @@ const content = document.getElementById('modal-content');
 const errorDisplay = document.getElementById('modal-error');
 const pinKeys = ['1','2','3','4','5','6','7','8','9','Back','0','Enter'];
 const fields = [['rom_directory','ROM directory'],['xenia_executable','Xenia executable'],['runner','Linux runner'],['runner_args','Runner arguments (JSON array)'],['new_pin','New PIN (4–8 digits)']];
+const settingsRows=[
+  {field:'rom_directory',label:'ROM directory'}, {field:'xenia_executable',label:'Xenia executable'},
+  {action:'browse-rom',label:'Browse ROM'}, {action:'browse-xenia',label:'Browse Xenia'},
+  {field:'runner',label:'Linux runner'}, {field:'runner_args',label:'Runner arguments'},
+  {action:'covers',label:'Download missing covers'}, {action:'save',label:'Save and rescan'},
+  {action:'themes',label:'NXE Themes'}, {field:'new_pin',label:'New PIN'},
+  {action:'pin',label:'PIN protection'}, {action:'return',label:'Return to games'}, {action:'exit',label:'Exit to Desktop'}
+];
+const settingsIndex=key=>settingsRows.findIndex(row=>row.field===key||row.action===key);
 let coverQueue = [], coverMatches = [], coverPosition = 0;
 let themeState={backgrounds:[],selected:null};
 function applyTheme(state){
@@ -42,11 +51,13 @@ async function activateTheme(){
   try {const state=choice>=audioIndex?await api.setThemeAudio({volume:choice===audioIndex?((Math.round((themeState.audio?.volume ?? .5)*4)+1)%5)/4:themeState.audio?.volume ?? .5,muted:choice===audioIndex+1?!themeState.audio?.muted:themeState.audio?.muted ?? false}):await api.selectTheme(themeState.backgrounds[choice].id);if(state)applyTheme(state);renderThemes();selected=Math.min(choice,selectableButtons().length-1);highlight();}
   catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
 }
-function returnSettings() { mode='settings';selected=fields.length+4;modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
+function returnSettings() { mode='settings';selected=settingsIndex('covers');modal('Administrator settings','D-pad: choose · A: select · B: lock and return');renderSettings(); }
+function renderCoverTools(){mode='cover-tools';selected=0;modal('Game cover artwork','D-pad: choose · A: select · B: return');content.replaceChildren();buttons(['Download missing covers','Replace a downloaded cover','Rescan local cover images','Return to settings'],'cover-options',activate);}
+function renderCoverGames(){mode='cover-games';selected=0;modal('Replace a downloaded cover','D-pad: choose game · A: search · B: return');coverQueue=gamesList.filter(game=>game.can_replace_cover);content.replaceChildren(node('p','cover-summary',coverQueue.length?'Choose the game with the wrong cover. Its current image stays until you confirm a replacement.':'No downloaded covers to replace. Local sidecar images can be refreshed with Rescan local cover images.'));buttons([...coverQueue.map(game=>game.title),'Return to cover options'],'cover-options',activate);}
 async function showCoverMatch() {
   mode='covers';selected=0;busy=true;
   const game=coverQueue[coverPosition];
-  modal('Download missing covers','D-pad: choose matching game · A: download · B: return to settings');
+  modal(game && !game.uses_fallback_art?'Replace game cover':'Download missing covers','D-pad: choose matching game · A: download · B: return to settings');
   content.replaceChildren(node('p','cover-summary',game ? `Searching for ${game.title}…` : 'All missing covers reviewed.'));
   try {
     coverMatches=game ? await api.searchCovers(game.id) : [];
@@ -149,10 +160,10 @@ function modal(title,help) {
 }
 function buttons(labels,className,action) {
   const grid=node('div',className);
-  labels.forEach((label,index)=>{ const button=node('button',index===selected?'selected':'',label);button.addEventListener('focus',()=>{const changed=selected!==index;selected=index;highlight(changed);});button.addEventListener('click',()=>{selected=index;action();});grid.append(button); });content.append(grid);
+  labels.forEach((label,index)=>{ const button=node('button',index===selected?'selected':'',label);button.addEventListener('focus',()=>{const previous=selected;selected=index;highlight(previous!==index,index<previous?'left':'right');});button.addEventListener('click',()=>{selected=index;action();});grid.append(button); });content.append(grid);
 }
 function selectableButtons() { return [...content.querySelectorAll(mode==='keyboard'?'.key-grid button':'button')]; }
-function highlight(withSound=false) { if(withSound)window.uiSounds?.play('focus');selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected));if(mode==='settings')updateSettingsDetails(); }
+function highlight(withSound=false,sound='right') { if(withSound)window.uiSounds?.play(mode==='pin'?sound:'focus');selectableButtons().forEach((button,index)=>button.classList.toggle('selected',index===selected));if(mode==='settings')updateSettingsDetails(); }
 async function openPin() {
   if(busy || mode!=='library')return;busy=true;
   try {
@@ -164,7 +175,7 @@ async function openPin() {
 function renderPin() { content.replaceChildren(node('div','entry','●'.repeat(pin.length) || 'Enter PIN'));buttons(pinKeys,'pin-grid',activate); }
 function closeModal() { window.uiSounds?.play('close');mode='library';pin='';editText='';settings={};document.body.classList.remove('modal-open');document.getElementById('overlay').classList.add('hidden');api.lockAdmin().catch(()=>{}); }
 function renderSettings() {
-  content.replaceChildren();buttons([...fields.map(([,label])=>label),'Browse ROM folder…','Browse Xenia executable…','Save and rescan','Return to games','Download missing covers','NXE themes',`PIN protection: ${settings.admin_pin_required===false?'off':'on'}`,'Exit to desktop'],'settings',activate);
+  content.replaceChildren();buttons(settingsRows.map(row=>row.action==='pin'?`PIN protection: ${settings.admin_pin_required===false?'off':'on'}`:row.label),'settings',activate);
   const list=content.firstElementChild;list.prepend(node('div','settings-highlight'));
   const shell=node('div','settings-shell'),details=node('div','settings-details');
   details.append(node('div','detail-label',themeState.menu?.detailLabel || 'Current setting'),node('div','setting-value'),node('p','setting-description'));
@@ -172,12 +183,13 @@ function renderSettings() {
 }
 function updateSettingsDetails() {
   const description=['Choose the folder containing your Xbox 360 games.','Choose the Xenia Canary executable.','Linux: choose the Wine or Proton runner. Windows launches Xenia directly.','Linux runner arguments, as a JSON array.','Set a new administrator PIN using 4–8 digits.','Open the native folder picker. The chosen path is saved when you select Save and rescan.','Open the native executable picker. The chosen path is saved when you select Save and rescan.','Save these settings and refresh your game collection.','Close NXE and return to the desktop.','Return to Game Library without saving pending changes.'];
-  const field=fields[selected]?.[0];
+  const field=settingsRows[selected]?.field;
   const value=content.querySelector('.setting-value');
   if(!value)return;
   value.textContent=field?(field==='new_pin'?'●'.repeat(settings[field]?.length || 0):settings[field] || '(not set)'):'NXE';
-  const descriptionIndex=selected===fields.length+3?9:selected===fields.length+7?8:selected;
-  content.querySelector('.setting-description').textContent=selected===fields.length+6?'Toggle PIN protection immediately. When off, Start or Admin opens settings directly, including Exit to desktop. Turning protection back on uses the saved PIN.':selected===fields.length+5?'Choose the original green NXE dashboard or Wallpaper 1–9, and adjust sound volume or mute.':selected===fields.length+4?'Find box art for games in the saved library. Confirm each suggested title or skip it. Saved covers work offline. Save and rescan first if you changed the ROM directory.':description[descriptionIndex] || '';
+  const descriptionIndex=field?fields.findIndex(([key])=>key===field):({'browse-rom':5,'browse-xenia':6,save:7,exit:8,return:9}[settingsRows[selected]?.action]);
+  const action=settingsRows[selected]?.action;
+  content.querySelector('.setting-description').textContent=action==='pin'?'Toggle PIN protection immediately. When off, Start or Admin opens settings directly, including Exit to desktop. Turning protection back on uses the saved PIN.':action==='themes'?'Choose the original green NXE dashboard or Wallpaper 1–9, and adjust sound volume or mute.':action==='covers'?'Download missing covers, replace a wrong downloaded image, or rescan local cover images. These actions use your saved ROM directory.':description[descriptionIndex] || '';
   const button=selectableButtons()[selected],bar=content.querySelector('.settings-highlight');
   if(button && bar){bar.style.height=`${button.offsetHeight}px`;bar.style.transform=`translateY(${button.offsetTop}px)`;}
 }
@@ -197,7 +209,7 @@ function renderKeyboard(focusInput = false) {
   buttons(keyboardKeys(),'key-grid',activate);
   if (focusInput) entry.focus();
 }
-function cancelEdit() { editText='';mode='settings';selected=fields.findIndex(f=>f[0]===editKey);modal('Administrator settings','Mouse/Tab: choose · Enter/A: edit/select · Esc/B: lock and return');renderSettings(); }
+function cancelEdit() { editText='';mode='settings';selected=settingsIndex(editKey);modal('Administrator settings','Mouse/Tab: choose · Enter/A: edit/select · Esc/B: lock and return');renderSettings(); }
 async function browseLocation(kind) {
   busy=true;
   try { const chosen=await api.browseLocation(kind);if(chosen){settings[kind]=chosen;renderSettings();} }
@@ -206,42 +218,48 @@ async function browseLocation(kind) {
 }
 async function activate() {
   if(busy) return;
-  window.uiSounds?.play('select');
+  window.uiSounds?.play(mode==='pin'?(pinKeys[selected]==='Back'?'left':'right'):'select');
+  if(mode==='cover-tools'){
+    if(selected===0)return startCoverDownloads();if(selected===1)return renderCoverGames();if(selected===3)return returnSettings();
+    busy=true;try{gamesList=await api.rescanCovers();renderCarousel();renderCoverTools();status('Local cover images rescanned.');}catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}return;
+  }
+  if(mode==='cover-games'){if(selected>=coverQueue.length)return renderCoverTools();coverQueue=[coverQueue[selected]];coverPosition=0;return showCoverMatch();}
   if(mode==='themes')return activateTheme();
   if(mode==='covers') return activateCover();
   if(mode==='pin') {
-    const key=pinKeys[selected];if(key==='Back')pin=pin.slice(0,-1);else if(key==='Enter')return submitPin();else if(pin.length<8)pin+=key;renderPin();
+    const key=pinKeys[selected];if(key==='Back')pin=pin.slice(0,-1);else if(key==='Enter')return submitPin(false);else if(pin.length<8)pin+=key;renderPin();
   } else if(mode==='settings') {
-    if(selected<fields.length){editKey=fields[selected][0];editText=settings[editKey] || '';mode='keyboard';selected=0;modal(`Edit ${fields.find(f=>f[0]===editKey)[1]}`,'Type or paste, then Enter. D-pad: move · A: type · X: erase · Y: done · Esc/B: discard');renderKeyboard(true);}
-    else if(selected===fields.length) return browseLocation('rom_directory');
-    else if(selected===fields.length+1) return browseLocation('xenia_executable');
-    else if(selected===fields.length+2) {
+    const row=settingsRows[selected];
+    if(row.field){editKey=row.field;editText=settings[editKey] || '';mode='keyboard';selected=0;modal(`Edit ${fields.find(f=>f[0]===editKey)[1]}`,'Type or paste, then Enter. D-pad: move · A: type · X: erase · Y: done · Esc/B: discard');renderKeyboard(true);}
+    else if(row.action==='browse-rom') return browseLocation('rom_directory');
+    else if(row.action==='browse-xenia') return browseLocation('xenia_executable');
+    else if(row.action==='save') {
       busy=true;
       try { const args=JSON.parse(settings.runner_args || '[]');gamesList=await api.saveSettings({...settings,runner_args:args});renderCarousel();status('Settings saved. Library refreshed.');closeModal(); } catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}
-    } else if(selected===fields.length+7){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
-    else if(selected===fields.length+6){busy=true;try{const access=await api.setPinProtection(settings.admin_pin_required===false);settings.admin_pin_required=access.pin_required;renderSettings();}catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}}
-    else if(selected===fields.length+5)return renderThemes();
-    else if(selected===fields.length+4)return startCoverDownloads();
+    } else if(row.action==='exit'){try{await api.exitToDesktop();}catch(error){errorDisplay.textContent=error.message;}}
+    else if(row.action==='pin'){busy=true;try{const access=await api.setPinProtection(settings.admin_pin_required===false);settings.admin_pin_required=access.pin_required;renderSettings();}catch(error){errorDisplay.textContent=error.message;}finally{busy=false;}}
+    else if(row.action==='themes')return renderThemes();
+    else if(row.action==='covers')return renderCoverTools();
     else closeModal();
   } else if(mode==='keyboard') {
     const key=keyboardKeys()[selected];if(key==='Done')return finishEdit();if(key==='Back')editText=editText.slice(0,-1);else if(key==='Case')caps=!caps;else if(editText.length<4096)editText+=key;renderKeyboard();
   }
 }
-async function submitPin() {
-  if(busy)return;busy=true;
+async function submitPin(withSound=true) {
+  if(busy)return;if(withSound)window.uiSounds?.play('right');busy=true;
   try { await api.unlockAdmin(pin);settings=await api.getSettings();settings.runner_args=JSON.stringify(settings.runner_args);settings.new_pin='';pin='';mode='settings';selected=0;modal('Administrator settings','Mouse/Tab: choose · Enter/A: edit/select · Esc/B: lock and return. Session expires in five minutes.');renderSettings(); }
   catch(error){pin='';renderPin();errorDisplay.textContent=error.message;}finally{busy=false;}
 }
-function finishEdit() { settings[editKey]=editText;editText='';mode='settings';selected=fields.findIndex(f=>f[0]===editKey);modal('Administrator settings','D-pad: choose · A: edit/select · B: lock and return');renderSettings(); }
+function finishEdit() { settings[editKey]=editText;editText='';mode='settings';selected=settingsIndex(editKey);modal('Administrator settings','D-pad: choose · A: edit/select · B: lock and return');renderSettings(); }
 function input(action) {
   if(busy)return;
   if(mode==='library'){if(action==='left')selectNext(-1);else if(action==='right')selectNext(1);else if(action==='lb')selectNext(-5);else if(action==='rb')selectNext(5);else if(action==='a')launchCurrentGame();return;}
-  if(action==='b'){window.uiSounds?.play('back');if(mode==='keyboard')cancelEdit();else if(mode==='covers'||mode==='themes')returnSettings();else closeModal();return;}
+  if(action==='b'){window.uiSounds?.play('back');if(mode==='keyboard')cancelEdit();else if(mode==='cover-games')renderCoverTools();else if(['covers','themes','cover-tools'].includes(mode))returnSettings();else closeModal();return;}
   if(action==='a')return activate();
-  if(action==='x'){if(mode==='pin'){pin=pin.slice(0,-1);renderPin();}else if(mode==='keyboard'){editText=editText.slice(0,-1);renderKeyboard();}return;}
+  if(action==='x'){if(mode==='pin'){window.uiSounds?.play('left');pin=pin.slice(0,-1);renderPin();}else if(mode==='keyboard'){editText=editText.slice(0,-1);renderKeyboard();}return;}
   if(action==='y'){if(mode==='pin')submitPin();else if(mode==='keyboard')finishEdit();return;}
   const count=selectableButtons().length, columns=mode==='pin'?3:mode==='keyboard'?10:1;
-  const delta={left:-1,right:1,up:-columns,down:columns}[action];if(delta!==undefined){const previous=selected;selected=Math.max(0,Math.min(count-1,selected+delta));highlight(selected!==previous);selectableButtons()[selected]?.scrollIntoView({block:'nearest'});}
+  const delta={left:-1,right:1,up:-columns,down:columns}[action];if(delta!==undefined){const previous=selected;selected=Math.max(0,Math.min(count-1,selected+delta));highlight(selected!==previous,delta<0?'left':'right');selectableButtons()[selected]?.scrollIntoView({block:'nearest'});}
 }
 class GamepadWheelController {
   constructor(){this.deadzone=.35;this.repeatDelay=220;this.lastInputTime=0;this.buttonStates={};this.controller=null;this.direction='';this.poll=this.poll.bind(this);requestAnimationFrame(this.poll);}
@@ -277,7 +295,7 @@ window.addEventListener('keydown',event=>{
   if(mode==='pin'&&event.key==='Enter'){event.preventDefault();submitPin();return;}
   if(event.key==='Tab')return;
   if(event.key==='Enter' && event.target?.tagName==='BUTTON')return; // Native button activation.
-  if(mode==='pin'&&/^\d$/.test(event.key)){if(pin.length<8)pin+=event.key;renderPin();return;}
+  if(mode==='pin'&&/^\d$/.test(event.key)){if(pin.length<8){window.uiSounds?.play('right');pin+=event.key;}renderPin();return;}
   if(mode==='keyboard'&&event.key.length===1){if(editText.length<4096)editText+=event.key;renderKeyboard();return;}
   const action={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'a',Backspace:'x',Escape:'b'}[event.key];if(action){event.preventDefault();input(action);}
 });

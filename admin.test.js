@@ -8,17 +8,18 @@ const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
 const { EventEmitter } = require('node:events');
 
-async function mainHarness(withTheme=false) {
+async function mainHarness(withTheme=false,coverMode='none') {
   const handlers = new Map(), calls = [], events = new Map(), windowCalls = [];
   const emulator = new EventEmitter();
   const game = { id: 'test-game', title: 'Test Game', rom_path: 'C:\\Games\\Test.iso' };
+  if(coverMode!=='none'){game.uses_fallback_art=false;game.cover_art_path=coverMode==='cached'?path.join(__dirname,'covers','test-game.jpg'):path.join(__dirname,'sidecar.jpg');}
   let now = 1000000, window;
   let dialogResult = { canceled: false, filePaths: ['C:\\Games\\Xbox360'] };
   const electron = {
     app: { setName(){},setPath(){},commandLine:{appendSwitch(){}},requestSingleInstanceLock: () => true, on() {}, whenReady: () => Promise.resolve(), getPath: () => __dirname, quit() {} },
     ipcMain: { handle: (name, fn) => handlers.set(name, fn) },
     globalShortcut: { isRegistered: () => false, register: () => { throw new Error('Unexpected registration on Windows'); }, unregisterAll() {} },
-    protocol: { registerSchemesAsPrivileged() {}, handle() {} }, net: {},
+    protocol: { registerSchemesAsPrivileged() {}, handle() {} }, net: {fetch:async url=>new Response(url.endsWith('games.json')?JSON.stringify([{id:'12345678',title:'Test Game'}]):Buffer.from([255,216,255,224]))},
     dialog: { showOpenDialog: async (_window, options) => { calls.push(options); return typeof dialogResult === 'function' ? dialogResult() : dialogResult; } },
     BrowserWindow: class {
       constructor() { window = this; this.webContents = { mainFrame: { url: pathToFileURL(path.join(__dirname, 'index.html')).href }, setWindowOpenHandler() {}, on: (name, fn) => events.set(name, fn), send: (_channel, state) => windowCalls.push(['state', state.running]), session: { setPermissionRequestHandler() {} } }; }
@@ -27,10 +28,11 @@ async function mainHarness(withTheme=false) {
       restore() { windowCalls.push(['restore']); } show() { windowCalls.push(['show']); } focus() { windowCalls.push(['focus']); }
       setKiosk(value) { windowCalls.push(['kiosk', value]); } setFullScreen(value) { windowCalls.push(['fullscreen', value]); }
       minimize() { windowCalls.push(['minimize']); }
+      setAlwaysOnTop(value){windowCalls.push(['topmost',value]);}
     }
   };
   const context = vm.createContext({
-    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {} } : name==='./nxe'?{...require('./nxe'),loadTheme:async()=>({directory:__dirname,manifest:{version:1,assets:{},backgrounds:[{id:'theme-test',label:'Test'}],inventory:[],sounds:{},notes:[]},selected:'theme-test',audio:{volume:.5,muted:false}})}:name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
+    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {},mkdir:async()=>{},writeFile:async()=>{},rename:async()=>{} } : name==='./nxe'?{...require('./nxe'),loadTheme:async()=>({directory:__dirname,manifest:{version:1,assets:{},backgrounds:[{id:'theme-test',label:'Test'}],inventory:[],sounds:{},notes:[]},selected:'theme-test',audio:{volume:.5,muted:false}})}:name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
     __dirname, console: { info() {}, warn() {}, error() {} }, process: { platform: 'win32' }, Date: { now: () => now }, URL, Response
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'main.js'), 'utf8'), context);
@@ -102,10 +104,24 @@ test('game startup keeps the kiosk fullscreen underneath Xenia; exit restores fo
   const h = await mainHarness();
   await h.invoke('game:launch', 'test-game');
   h.emulator.emit('spawn');
-  assert.deepEqual(h.windowCalls, [['state', true]]);
+  assert.deepEqual(h.windowCalls, [['topmost',true],['topmost',false],['state', true]]);
   await assert.rejects(h.invoke('game:launch', 'test-game'), /already running/);
   h.emulator.emit('close', 0);
-  assert.deepEqual(h.windowCalls, [['state', true], ['restore'], ['show'], ['kiosk', true], ['fullscreen', true], ['focus'], ['state', false]]);
+  assert.deepEqual(h.windowCalls, [['topmost',true],['topmost',false],['state', true], ['restore'], ['show'], ['kiosk', true], ['fullscreen', true], ['focus'], ['state', false]]);
   h.emulator.emit('error', new Error('late error'));
   assert.equal(h.windowCalls.filter(call => call[0] === 'restore').length, 1);
+});
+
+test('admin can replace a cached cover and refresh its URL; local images remain protected',async()=>{
+  const h=await mainHarness(false,'cached');
+  await assert.rejects(h.invoke('admin:cover-rescan'),/session expired/);
+  await assert.rejects(h.untrusted('admin:cover-rescan'),/Untrusted/);
+  await h.invoke('admin:unlock','1234');
+  const before=(await h.invoke('library:get')).games[0];assert.equal(before.can_replace_cover,true);
+  assert.equal((await h.invoke('admin:cover-search','test-game'))[0].id,'12345678');
+  await assert.rejects(h.invoke('admin:cover-download','test-game','invalid'),/Invalid/);
+  const replaced=(await h.invoke('admin:cover-download','test-game','12345678'))[0];assert.notEqual(replaced.cover_art_path,before.cover_art_path);assert.equal(replaced.uses_fallback_art,false);
+  assert.equal((await h.invoke('admin:cover-rescan')).length,1);
+  const local=await mainHarness(false,'local');await local.invoke('admin:unlock','1234');assert.equal((await local.invoke('library:get')).games[0].can_replace_cover,false);
+  await assert.rejects(local.invoke('admin:cover-download','test-game','12345678'),/Invalid/);
 });

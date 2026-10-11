@@ -9,11 +9,13 @@ const covers = require('./covers');
 const nxe = require('./nxe');
 const {selectUserData}=require('./storage');
 const {musicResponse}=require('./music-stream');
+const {prepareHandoff}=require('./handoff');
 app.setName('NXE');
 app.setPath('userData',selectUserData(app.getPath('appData'),app.getPath('userData'),app.isPackaged));
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 let importedTheme=null;
 let backgroundMusic;
+let coverRevision=Date.now();
 const coverService = covers.createService((...args) => net.fetch(...args));
 protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true,stream:true } }]);
 let win, library, libraryFile, child, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
@@ -21,7 +23,7 @@ let queue = Promise.resolve();
 let pickerOpen = false, shortcutNoticeShown = false;
 function serialized(work) { const result = queue.then(work); queue = result.catch(() => {}); return result; }
 function requireAdmin() { if (Date.now() > adminUntil) throw new Error('Admin session expired. Open administrator access again.'); }
-function publicGames() { return library.games.map(g => ({ id: g.id, title: g.title, uses_fallback_art: g.uses_fallback_art, cover_art_path: g.cover_art_path ? `kratos-art://cover/${g.id}` : null })); }
+function publicGames() { return library.games.map(g => ({ id: g.id, title: g.title, uses_fallback_art: g.uses_fallback_art,can_replace_cover:covers.isCachedCover(g,path.join(app.getPath('userData'),'covers')), cover_art_path: g.cover_art_path ? `kratos-art://cover/${g.id}?v=${coverRevision}` : null })); }
 function shortcuts() {
   // Close, devtools and fullscreen shortcuts are blocked locally by the window.
   // Windows reserves task switching and the Windows key; Super alone is not an accelerator.
@@ -56,14 +58,17 @@ async function launch(id) {
   const linux = process.platform === 'linux';
   const command = linux ? library.runner || 'wine' : library.xenia_executable;
   const args = linux ? [...(library.runner_args || []), library.xenia_executable, '--fullscreen', game.rom_path] : ['--fullscreen', game.rom_path];
-  child = spawn(command, args, { shell: false, cwd: path.dirname(library.xenia_executable), stdio: 'ignore', windowsHide: false });
+  const handoff=prepareHandoff(win,{platform:process.platform});
+  try{child = spawn(command, args, { shell: false, cwd: path.dirname(library.xenia_executable), stdio: 'ignore', windowsHide: false });}
+  catch(error){handoff.cancel();throw error;}
   let finished = false;
-  const finish = state => { if (!finished) { finished = true; recover(state); } };
+  const finish = state => { if (!finished) { finished = true;handoff.cancel(); recover(state); } };
   child.once('error', error => finish({ running: false, error: `Launch failed: ${error.message}` }));
   child.once('close', code => finish({ running: false, error: code ? `Emulator exited with code ${code}` : null }));
   child.once('spawn', () => {
     // Keep the dashboard fullscreen underneath Xenia during window creation.
     globalShortcut.unregisterAll();
+    handoff.watch(child.pid);
     win.webContents.send('game:state', { running: true });
   });
   return true;
@@ -141,14 +146,14 @@ else {
     handle('admin:lock', () => { adminUntil = 0; });
     handle('admin:cover-search', async id => {
       requireAdmin();
-      const game = library.games.find(g => g.id === id && g.uses_fallback_art);
-      if (!game) throw new Error('Game no longer needs artwork');
+      const game = library.games.find(g => g.id === id);
+      if (!game) throw new Error('Unknown game');
       const results = await coverService.search(game.title);
       requireAdmin(); return results;
     });
     handle('admin:cover-download', (id, candidate) => serialized(async () => {
       requireAdmin();
-      const game = library.games.find(g => g.id === id && g.uses_fallback_art);
+      const game = library.games.find(g => g.id === id && (g.uses_fallback_art || covers.isCachedCover(g,coverDirectory)));
       if (!game || !(await coverService.search(game.title)).some(g => g.id === candidate)) throw new Error('Invalid cover match');
       const bytes = await coverService.download(candidate);
       requireAdmin();
@@ -157,7 +162,11 @@ else {
       const temp = `${file}.tmp`;
       await fs.writeFile(temp, bytes); await fs.rename(temp, file);
       const next = { ...library, games: library.games.map(g => g.id === id ? { ...g, cover_art_path: file, uses_fallback_art: false, cover_source: 'xenia-manager/x360db', cover_title_id: candidate } : g) };
-      await scanner.saveLibrary(libraryFile, next); library = next; return publicGames();
+      await scanner.saveLibrary(libraryFile, next); library = next;coverRevision++; return publicGames();
+    }));
+    handle('admin:cover-rescan',()=>serialized(async()=>{
+      requireAdmin();const games=await covers.applyCached(await scanner.scanDirectory(library.rom_directory),coverDirectory);requireAdmin();
+      const next={...library,games};await scanner.saveLibrary(libraryFile,next);library=next;coverRevision++;return publicGames();
     }));
     handle('admin:settings', () => { requireAdmin(); return { rom_directory: library.rom_directory, xenia_executable: library.xenia_executable, runner: library.runner || 'wine', runner_args: library.runner_args || [], platform_os: process.platform,admin_pin_required:library.admin_pin_required!==false }; });
     handle('admin:browse', async kind => {
@@ -186,7 +195,7 @@ else {
       const games = await covers.applyCached(await scanner.scanDirectory(settings.rom_directory), coverDirectory);
       const next = { ...library, platform_os: process.platform, rom_directory: settings.rom_directory, xenia_executable: settings.xenia_executable, runner: settings.runner, runner_args: settings.runner_args, games };
       if (settings.new_pin) { if (!/^\d{4,8}$/.test(settings.new_pin)) throw new Error('PIN must be 4–8 digits'); next.admin_credential = scanner.hashPin(settings.new_pin); }
-      requireAdmin(); await scanner.saveLibrary(libraryFile, next); library = next; scanError = ''; return publicGames();
+      requireAdmin(); await scanner.saveLibrary(libraryFile, next); library = next;coverRevision++; scanError = ''; return publicGames();
     }));
     handle('admin:exit', () => { requireAdmin(); allowQuit = true; app.quit(); });
     win = new BrowserWindow({ kiosk: true, fullscreen: true, frame: false, autoHideMenuBar: true, backgroundColor: '#07090c', webPreferences: { preload: path.join(__dirname, 'preload.js'), nodeIntegration: false, contextIsolation: true, sandbox: true, devTools: false } });

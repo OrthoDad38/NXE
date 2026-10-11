@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   browseLocation: kind => ipcRenderer.invoke('admin:browse', kind),
   saveSettings: settings => ipcRenderer.invoke('admin:save', settings),
   searchCovers: id => ipcRenderer.invoke('admin:cover-search', id),
+  rescanCovers: () => ipcRenderer.invoke('admin:cover-rescan'),
   downloadCover: (id, candidate) => ipcRenderer.invoke('admin:cover-download', id, candidate),
   exitToDesktop: () => ipcRenderer.invoke('admin:exit'),
   onGameState: callback => {

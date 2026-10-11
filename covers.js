@@ -51,4 +51,5 @@ async function applyCached(games, directory) {
   }
   return games;
 }
-module.exports = { createService, matches, applyCached };
+function isCachedCover(game,directory){return typeof game.cover_art_path==='string' && path.resolve(game.cover_art_path)===path.resolve(directory,`${game.id}.jpg`);}
+module.exports = { createService, matches, applyCached,isCachedCover };

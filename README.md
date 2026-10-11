@@ -105,12 +105,14 @@ For Proton, select the absolute Proton script path as runner and set runner argu
 - **Start: open administrator access.** The earlier LB + RB + D-pad Up + A shortcut also remains available.
 - Mouse: click **Admin**. Keyboard: type the PIN and Enter; Tab chooses controls, Enter activates, Escape cancels.
 - Initial PIN: **1234**. Change it with **New PIN** and **Save and rescan**.
-- PIN keypad: D-pad chooses, A enters, X erases, Y submits, B cancels.
+- PIN keypad: D-pad chooses, A enters, X erases, Y submits, B cancels. PIN navigation/entry uses the same left/right cycling cues as the game tiles.
 - Settings support controller entry, native typing/paste, and mouse/keyboard file pickers. Enter/Done accepts a field edit; Escape/Cancel discards it. Save and rescan persists paths, runner settings, and a changed PIN.
 - **PIN protection: on/off** immediately saves whether admin access asks for a PIN. Turn it off to open settings directly with Start or Admin, including access to Exit to desktop. Turn it back on to use the retained PIN. Turning it off does not erase your PIN; a new PIN is saved through Save and rescan.
 - **Exit to desktop** is always the last option. Admin sessions expire after five minutes and are cleared on game launch or return to Game Library. Five incorrect PINs impose a thirty-second cooldown when protection is enabled.
 
 PIN protection starts enabled, including for existing libraries without the new preference. Disabling it intentionally allows any user to open settings and exit the kiosk. Main-process caller validation, session checks, and restricted IPC remain active in either mode.
+
+The administrator menu order is: ROM directory, Xenia executable, Browse ROM, Browse Xenia, Linux runner, Runner arguments, Download missing covers, Save and rescan, NXE Themes, New PIN, PIN protection, Return to games, Exit to Desktop.
 
 ## Built-in NXE theme, wallpapers, and sound
 
@@ -132,7 +134,7 @@ The NXE themes volume/mute settings control both the cues and background music. 
 
 Scanning recurses through real directories for `.iso`, `.xex`, and `.god` files, skipping symlinks. Same-folder ROM_NAME.png/.jpg/.jpeg artwork is detected case-insensitively. IDs are stable path hashes. This scans `.god` files rather than arbitrary extensionless Games on Demand containers; curate extracted games to avoid duplicate `.xex` entries.
 
-Admin → **Download missing covers** searches the [x360db archive](https://github.com/xenia-manager/x360db). Confirm the suggested title or skip it. Save changed ROM paths before downloading. Downloaded covers are cached in userData/covers and survive rescans; local sidecars take priority. Downloads use fixed source URLs, size/time bounds, and JPEG validation. Covers remain the property of their owners.
+Admin → **Download missing covers** searches the [x360db archive](https://github.com/xenia-manager/x360db). Confirm the suggested title or skip it. Save changed ROM paths before downloading. Downloaded covers are cached in userData/covers and survive rescans; local sidecars take priority. The cover submenu also offers **Replace a downloaded cover** (choose a game, search again, and confirm a new match) and **Rescan local cover images**. Replacement keeps the previous cover until the download succeeds and refreshes its artwork URL so the new image appears immediately. Local sidecar files are not overwritten; update those files and rescan instead. Downloads use fixed source URLs, size/time bounds, and JPEG validation. Covers remain the property of their owners.
 
 ## Settings, kiosk behavior, and security
 
@@ -141,6 +143,14 @@ Fresh installs use `%APPDATA%/NXE` on Windows or `~/.config/NXE` on Linux. Exist
 The launcher is frameless, fullscreen, and sandboxed with context isolation, no renderer Node access, controlled local artwork URLs, and a restrictive CSP. It stays fullscreen underneath Xenia during startup, releases game-interfering shortcuts, and restores focus on process termination or launch failure. Process commands use argument arrays with `shell: false`.
 
 Electron cannot block every OS escape route: Alt+Tab, Windows keys, secure attention sequences, compositor shortcuts, task managers, and physical access need account/OS restrictions. Use a dedicated limited kiosk account and test on the actual computer. Keep PIN protection enabled for child use. The launcher alone is not a security boundary.
+
+## Windows fullscreen handoff
+
+On Windows, the loading dashboard temporarily stays above Xenia's startup window. A hidden, bundled PowerShell helper watches only the launched emulator process. It checks window visibility, borderless style, and monitor bounds at the correct DPI; after three stable fullscreen samples it releases the dashboard and requests foreground focus for Xenia. Game termination or launch errors cancel the helper and restore normal kiosk focus. The helper stops after 30 seconds, with a 35-second outer fallback, so unsupported window behavior cannot trap the loading screen.
+
+This detects a fullscreen window, not completion of game loading or its first rendered game frame. Xenia variants, exclusive fullscreen, multiple monitors, and Windows focus policy can affect the handoff; test your actual build. Linux keeps its existing Wine/Proton startup behavior. The helper requires Windows PowerShell; if unavailable, the usual startup behavior is restored.
+
+API references: [Electron always-on-top](https://www.electronjs.org/docs/latest/api/browser-window/#winsetalwaysontopflag-level-relativelevel), [Microsoft monitor APIs](https://learn.microsoft.com/en-us/windows/win32/gdi/multiple-display-monitors-functions), and [foreground restrictions](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow).
 
 ## Packaging for people who avoid terminals
 

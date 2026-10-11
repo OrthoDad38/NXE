@@ -58,3 +58,11 @@ test('native field editing preserves cursor and Tab; Enter accepts and Escape di
   assert.equal(dispatch('Enter','BODY'),true);
   assert.deepEqual(actions,['done','cancel','submit']);
 });
+
+test('PIN navigation, digit entry and erase use tile cycling cues; settings use the requested order',async()=>{
+  const sounds=[];const context=vm.createContext({window:{electronAPI:{},uiSounds:{play:role=>sounds.push(role)},addEventListener(){}},document:{getElementById(){return {}; }},requestAnimationFrame(){},navigator:{}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'renderer.js'),'utf8')+'\nmode="pin";renderPin=()=>{};selectableButtons=()=>Array.from({length:12},()=>({classList:{toggle(){}},scrollIntoView(){}}));',context);
+  vm.runInContext('input("right");input("left");activate();input("x");',context);assert.deepEqual(sounds,['right','left','right','left']);
+  const labels=vm.runInContext('settingsRows.map(row=>row.label)',context);
+  assert.deepEqual(Array.from(labels),['ROM directory','Xenia executable','Browse ROM','Browse Xenia','Linux runner','Runner arguments','Download missing covers','Save and rescan','NXE Themes','New PIN','PIN protection','Return to games','Exit to Desktop']);
+});
