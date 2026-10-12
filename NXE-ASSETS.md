@@ -8,6 +8,6 @@ The resource parser validates XUIZ archives and XEX containers, and decodes XUR 
 
 Floor geometry, ripple rings, tile lighting/reflections, movement, rounded shadows, and the smooth menu frame are rendered in CSS/JavaScript. Scene-specific avatar/prop layers and square box-art shadows are retained in the inventory but not applied to the library.
 
-Runtime imports remain supported internally for existing cached profiles. Normal use needs no dashboard download, import, or conversion. The font is not bundled.
+Existing cached themes remain supported. Import/decoder APIs are not exposed by the shipped app. Asset recovery is developer-only; normal use needs no dashboard download, import, or conversion. The font is not bundled.
 
 Microsoft dashboard assets retain their ownership and are separate from the MIT source-code license. See [FFMPEG-NOTICE.md](FFMPEG-NOTICE.md) for converter licensing.

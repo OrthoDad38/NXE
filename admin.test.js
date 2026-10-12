@@ -22,8 +22,8 @@ async function mainHarness(withTheme=false,coverMode='none') {
     protocol: { registerSchemesAsPrivileged() {}, handle() {} }, net: {fetch:async url=>new Response(url.endsWith('games.json')?JSON.stringify([{id:'12345678',title:'Test Game'}]):Buffer.from([255,216,255,224]))},
     dialog: { showOpenDialog: async (_window, options) => { calls.push(options); return typeof dialogResult === 'function' ? dialogResult() : dialogResult; } },
     BrowserWindow: class {
-      constructor() { window = this; this.webContents = { mainFrame: { url: pathToFileURL(path.join(__dirname, 'index.html')).href }, setWindowOpenHandler() {}, on: (name, fn) => events.set(name, fn), send: (_channel, state) => windowCalls.push(['state', state.running]), session: { setPermissionRequestHandler() {} } }; }
-      setMenu() {} on() {} async loadFile() {}
+      constructor() { window = this; this.webContents = { mainFrame: { url: 'nxe-app://dashboard/index.html' }, setWindowOpenHandler() {}, on: (name, fn) => events.set(name, fn), send: (_channel, state) => windowCalls.push(['state', state.running]), session: { setPermissionRequestHandler() {},setPermissionCheckHandler() {} } }; }
+      setMenu() {} on() {} async loadFile() {} async loadURL() {}
       isDestroyed() { return false; }
       restore() { windowCalls.push(['restore']); } show() { windowCalls.push(['show']); } focus() { windowCalls.push(['focus']); }
       setKiosk(value) { windowCalls.push(['kiosk', value]); } setFullScreen(value) { windowCalls.push(['fullscreen', value]); }
@@ -32,13 +32,13 @@ async function mainHarness(withTheme=false,coverMode='none') {
     }
   };
   const context = vm.createContext({
-    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {},mkdir:async()=>{},writeFile:async()=>{},rename:async()=>{} } : name==='./nxe'?{...require('./nxe'),loadTheme:async()=>({directory:__dirname,manifest:{version:1,assets:{},backgrounds:[{id:'theme-test',label:'Test'}],inventory:[],sounds:{},notes:[]},selected:'theme-test',audio:{volume:.5,muted:false}})}:name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
+    require: name => name === 'electron' ? electron : name === 'node:child_process' ? { spawn: () => emulator } : name === 'node:fs/promises' ? { access: async () => {},mkdir:async()=>{},writeFile:async()=>{},rename:async()=>{},unlink:async()=>{} } : name==='./nxe'?{...require('./nxe'),loadTheme:async()=>({directory:__dirname,manifest:{version:1,assets:{},backgrounds:[{id:'theme-test',label:'Test'}],inventory:[],sounds:{},notes:[]},selected:'theme-test',audio:{volume:.5,muted:false}})}:name === './scanner' ? { ...scanner, loadLibrary: async () => ({ rom_directory: '', xenia_executable: 'C:\\Xenia\\xenia.exe', games: [game], admin_credential: scanner.hashPin('1234') }), scanDirectory: async () => [game], saveLibrary: async () => {} } : require(name),
     __dirname, console: { info() {}, warn() {}, error() {} }, process: { platform: 'win32' }, Date: { now: () => now }, URL, Response
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'main.js'), 'utf8'), context);
   await new Promise(resolve => setImmediate(resolve));
   const caller = () => ({ sender: window.webContents, senderFrame: window.webContents.mainFrame });
-  return { calls, events, emulator, windowCalls, invoke: (name, ...args) => handlers.get(name)(caller(), ...args), untrusted: (name, ...args) => handlers.get(name)({ sender: {}, senderFrame: {} }, ...args), setTime: value => { now = value; }, setResult: value => { dialogResult = value; } };
+  return { calls, events, emulator, windowCalls,hasHandler:name=>handlers.has(name), invoke: (name, ...args) => handlers.get(name)(caller(), ...args), untrusted: (name, ...args) => handlers.get(name)({ sender: {}, senderFrame: {} }, ...args), setTime: value => { now = value; }, setResult: value => { dialogResult = value; } };
 }
 test('PIN protection defaults on, can be disabled in-session and reenabled with the saved PIN',async()=>{
   const h=await mainHarness();
@@ -56,7 +56,7 @@ test('PIN protection defaults on, can be disabled in-session and reenabled with 
 test('native pickers require PIN and trusted IPC, constrain picker type and preserve cancel', async () => {
   const h = await mainHarness();
   await assert.rejects(h.invoke('admin:cover-search', 'test-game'), /session expired/);
-  await assert.rejects(h.invoke('admin:theme-import'), /session expired/);
+  assert.equal(h.hasHandler('admin:theme-import'),false);
   await assert.rejects(h.invoke('admin:theme-select',null), /session expired/);
   await assert.rejects(h.invoke('admin:theme-audio',{volume:1,muted:false}), /session expired/);
   await assert.rejects(h.invoke('admin:cover-download', 'test-game', '4D5307E6'), /session expired/);
@@ -124,4 +124,10 @@ test('admin can replace a cached cover and refresh its URL; local images remain 
   assert.equal((await h.invoke('admin:cover-rescan')).length,1);
   const local=await mainHarness(false,'local');await local.invoke('admin:unlock','1234');assert.equal((await local.invoke('library:get')).games[0].can_replace_cover,false);
   await assert.rejects(local.invoke('admin:cover-download','test-game','12345678'),/Invalid/);
+});
+
+test('PIN attempts are throttled and changing PIN protection remains admin-only',async()=>{
+ const h=await mainHarness();for(let i=0;i<5;i++)await assert.rejects(h.invoke('admin:unlock','9999'),/Incorrect/);
+ await assert.rejects(h.invoke('admin:unlock','1234'),/Too many/);h.setTime(1030001);await h.invoke('admin:unlock','1234');await h.invoke('admin:lock');await assert.rejects(h.invoke('admin:pin-protection',false),/session expired/);
+ assert.equal(h.hasHandler('admin:theme-builtin'),false);
 });

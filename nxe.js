@@ -2,7 +2,6 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const crypto=require('node:crypto');
-const resources=require('./nxe-resources');
 // XUIZ directory: big-endian header, length/offset/name-length records, UTF-16BE names.
 function parseXzp(buffer) {
   if(buffer.length<22 || buffer.toString('ascii',0,4)!=='XUIZ' || buffer.readUInt32BE(8)!==buffer.length)throw new Error('Invalid XUIZ archive');
@@ -29,6 +28,7 @@ async function resolveRoot(folder){
   throw new Error('Choose the dashboard folder containing NXE/Theme1/Wallpaper1.jpg');
 }
 async function importTheme(folder,userData,authorize=()=>{}){
+  const resources=require('./nxe-resources');
   const root=await resolveRoot(folder);authorize();
   const themesRoot=path.join(userData,'nxe-themes');await fs.mkdir(themesRoot,{recursive:true});
   const destination=await fs.mkdtemp(path.join(themesRoot,'import-'));

@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, protocol, net, dialog } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs/promises');
+const crypto=require('node:crypto');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const scanner = require('./scanner');
@@ -11,6 +12,10 @@ const {selectUserData}=require('./storage');
 const {musicResponse}=require('./music-stream');
 const {prepareHandoff}=require('./handoff');
 const {groupGames}=require('./multidisc');
+const {readAsset,APP_FILES}=require('./local-assets');
+const RENDERER_URL='nxe-app://dashboard/index.html';
+const unsafeSwitch=['no-sandbox','disable-web-security','ignore-certificate-errors','allow-running-insecure-content'].find(flag=>app.commandLine.hasSwitch?.(flag));
+for(const flag of ['remote-debugging-port','remote-debugging-pipe'])app.commandLine.removeSwitch?.(flag);
 app.setName('NXE');
 app.setPath('userData',selectUserData(app.getPath('appData'),app.getPath('userData'),app.isPackaged));
 app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
@@ -18,7 +23,7 @@ let importedTheme=null;
 let backgroundMusic;
 let coverRevision=Date.now();
 const coverService = covers.createService((...args) => net.fetch(...args));
-protocol.registerSchemesAsPrivileged([{ scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true,stream:true } }]);
+protocol.registerSchemesAsPrivileged([{scheme:'nxe-app',privileges:{standard:true,secure:true,supportFetchAPI:true}}, { scheme: 'kratos-art', privileges: { standard: true, secure: true, supportFetchAPI: true,stream:true } }]);
 let win, library, libraryFile, child,launchPending=false, allowQuit = false, adminUntil = 0, attempts = 0, blockedUntil = 0;
 let queue = Promise.resolve();
 let pickerOpen = false, shortcutNoticeShown = false;
@@ -49,7 +54,7 @@ function recover(state) {
 }
 function handle(channel, fn) {
   ipcMain.handle(channel, async (event, ...args) => {
-    if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || event.senderFrame.url !== pathToFileURL(path.join(__dirname, 'index.html')).href) throw new Error('Untrusted caller');
+    if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || event.senderFrame.url !== RENDERER_URL) throw new Error('Untrusted caller');
     return fn(...args);
   });
 }
@@ -81,7 +86,8 @@ async function launch(id) {
   });
   return true;
 }
-if (!app.requestSingleInstanceLock()) app.quit();
+if(unsafeSwitch){console.error(`[NXE] Refusing unsafe startup option: --${unsafeSwitch}`);app.quit();}
+else if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (win && !child) { win.restore(); win.focus(); } });
   app.whenReady().then(async () => {
@@ -92,19 +98,34 @@ else {
     const coverDirectory = path.join(app.getPath('userData'), 'covers');
     let scanError = '';
     try { library.games = await covers.applyCached(await scanner.scanDirectory(library.rom_directory), coverDirectory); await scanner.saveLibrary(libraryFile, library); } catch (error) { scanError = `Scan failed: ${error.message}`; }
-    protocol.handle('kratos-art', request => {
+    protocol.handle('nxe-app',async request=>{
+      try{
+        const url=new URL(request.url),file=url.pathname.slice(1);
+        if(request.method!=='GET'||url.host!=='dashboard'||url.username||url.password||!APP_FILES.has(file))return new Response('Not found',{status:404});
+        const asset=await readAsset(path.join(__dirname,file),__dirname,['.html','.js','.css','.jpg']);
+        return new Response(asset.bytes,{headers:{'Content-Type':asset.mime,'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'}});
+      }catch{return new Response('Not found',{status:404});}
+    });
+    protocol.handle('kratos-art', async request => {
+      try{
       const url = new URL(request.url);
+      if(!['GET','HEAD'].includes(request.method)||url.username||url.password||url.port)return new Response('Not found',{status:404});
       if(url.hostname==='music' && url.pathname==='/dashboard'){
-        backgroundMusic ||= fs.readFile(path.join(__dirname,'assets','dashboard-music.ogg'));
-        return backgroundMusic.then(bytes=>musicResponse(bytes,request.headers.get('range')));
+        backgroundMusic ||= readAsset(path.join(__dirname,'assets','dashboard-music.ogg'),__dirname,['.ogg']);
+        const asset=await backgroundMusic;return musicResponse(asset.bytes,request.headers.get('range'),asset.mime);
       }
       if(url.hostname==='theme'){
-        const asset=importedTheme?.manifest.assets[url.pathname.slice(1)];
-        return asset?net.fetch(pathToFileURL(path.join(importedTheme.directory,asset.file)).href):new Response('Not found',{status:404});
+        const id=url.pathname.slice(1),assets=importedTheme?.manifest.assets;
+        if(!assets||!Object.hasOwn(assets,id))return new Response('Not found',{status:404});
+        const asset=await readAsset(path.join(importedTheme.directory,assets[id].file),importedTheme.directory,['.jpg','.png','.wav']);
+        return musicResponse(asset.bytes,request.headers.get('range'),asset.mime);
       }
       const game = library.games.find(g => g.id === url.pathname.slice(1));
       if (url.hostname !== 'cover' || !game?.cover_art_path) return new Response('Not found', { status: 404 });
-      return net.fetch(pathToFileURL(game.cover_art_path).href);
+      const root=covers.isCachedCover(game,coverDirectory)?app.getPath('userData'):path.dirname(game.rom_path);
+      const asset=await readAsset(game.cover_art_path,root,['.jpg','.png','.jpeg']);
+      return musicResponse(asset.bytes,request.headers.get('range'),asset.mime);
+      }catch{return new Response('Not found',{status:404});}
     });
     handle('library:get', () => ({ games: publicGames(), error: scanError }));
     handle('game:launch', launch);
@@ -114,22 +135,6 @@ else {
       requireAdmin();if(typeof required!=='boolean')throw Error('Invalid PIN protection setting');
       const next={...library,admin_pin_required:required};await scanner.saveLibrary(libraryFile,next);library=next;
       return {pin_required:required};
-    }));
-    handle('admin:theme-builtin',()=>serialized(async()=>{
-      requireAdmin();const theme=await nxe.loadTheme(null,app.getPath('userData'));
-      theme.audio=importedTheme?.audio || theme.audio;requireAdmin();
-      const next={...library,nxe_theme:nxe.themeConfig(theme)};await scanner.saveLibrary(libraryFile,next);library=next;importedTheme=theme;return nxe.publicTheme(theme);
-    }));
-    handle('admin:theme-import',()=>serialized(async()=>{
-      requireAdmin();if(pickerOpen)throw new Error('A file picker is already open');pickerOpen=true;
-      try {
-        const result=await dialog.showOpenDialog(win,{title:'Choose Xbox 360 dashboard folder',properties:['openDirectory']});
-        requireAdmin();if(result.canceled)return null;
-        const config=await nxe.importTheme(result.filePaths[0],app.getPath('userData'),requireAdmin);
-        const theme=await nxe.loadTheme(config,app.getPath('userData'));requireAdmin();
-        const next={...library,nxe_theme:config};await scanner.saveLibrary(libraryFile,next);library=next;importedTheme=theme;
-        return nxe.publicTheme(theme);
-      } finally {pickerOpen=false;}
     }));
     handle('admin:theme-select',id=>serialized(async()=>{
       requireAdmin();
@@ -166,9 +171,11 @@ else {
       const bytes = await coverService.download(candidate);
       requireAdmin();
       await fs.mkdir(coverDirectory, { recursive: true });
-      const file = path.join(coverDirectory, `${game.id}.jpg`);
-      const temp = `${file}.tmp`;
-      await fs.writeFile(temp, bytes); await fs.rename(temp, file);
+      const file = covers.coverPath(coverDirectory,game.id);
+      const temp = `${file}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+      let created=false;
+      try{await fs.writeFile(temp, bytes,{mode:0o600,flag:'wx'});created=true;await fs.rename(temp, file);}
+      finally{if(created)await fs.unlink(temp).catch(()=>{});}
       const next = { ...library, games: library.games.map(g => g.id === id ? { ...g, cover_art_path: file, uses_fallback_art: false, cover_source: 'xenia-manager/x360db', cover_title_id: candidate } : g) };
       await scanner.saveLibrary(libraryFile, next); library = next;coverRevision++; return publicGames();
     }));
@@ -211,6 +218,7 @@ else {
     win.on('close', event => { if (!allowQuit) event.preventDefault(); });
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     win.webContents.on('will-navigate', event => event.preventDefault());
+    win.webContents.on('will-frame-navigate',event=>event.preventDefault());
     win.webContents.on('will-attach-webview', event => event.preventDefault());
     win.webContents.on('before-input-event', (event, input) => {
       const admin = Date.now() <= adminUntil;
@@ -222,7 +230,8 @@ else {
     });
     win.webContents.on('render-process-gone', (_event, details) => console.error(`[NXE] Renderer stopped: ${details.reason} (exit ${details.exitCode})`));
     win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-    await win.loadFile(path.join(__dirname, 'index.html')); shortcuts();
+    win.webContents.session.setPermissionCheckHandler(()=>false);
+    await win.loadURL(RENDERER_URL); shortcuts();
     console.info('[NXE] Dashboard loaded.');
   }).catch(error => { console.error(error); allowQuit = true; app.quit(); });
 }

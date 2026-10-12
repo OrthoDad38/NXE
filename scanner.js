@@ -9,27 +9,35 @@ function cleanTitle(name) {
 function hashPin(pin, salt = crypto.randomBytes(16).toString('hex')) {
   return { salt, hash: crypto.scryptSync(pin, salt, 32).toString('hex') };
 }
+function validCredential(credential){return !!credential&&typeof credential.salt==='string'&&/^[a-f0-9]{32}$/.test(credential.salt)&&typeof credential.hash==='string'&&/^[a-f0-9]{64}$/.test(credential.hash);}
 function verifyPin(pin, credential) {
   if (typeof pin !== 'string' || !/^\d{4,8}$/.test(pin)) return false;
+  if(!validCredential(credential))return false;
   const actual = hashPin(pin, credential.salt).hash;
   const expected = Buffer.from(credential.hash, 'hex');
   return expected.length === 32 && crypto.timingSafeEqual(Buffer.from(actual, 'hex'), expected);
 }
 async function saveLibrary(file, library) {
   await fs.mkdir(path.dirname(file), { recursive: true });
-  const temp = `${file}.tmp`;
-  await fs.writeFile(temp, JSON.stringify(library, null, 2), { mode: 0o600 });
-  await fs.rename(temp, file);
+  const temp = `${file}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+  let created=false;
+  try{
+    await fs.writeFile(temp, JSON.stringify(library, null, 2), { mode: 0o600,flag:'wx' });
+    created=true;
+    await fs.rename(temp, file);
+  }finally{if(created)await fs.unlink(temp).catch(()=>{});}
 }
 async function loadLibrary(file) {
   try {
     const data = JSON.parse(await fs.readFile(file, 'utf8'));
     if (!Array.isArray(data.games) || typeof data.rom_directory !== 'string' || typeof data.xenia_executable !== 'string') throw new Error('Invalid library schema');
     if (!data.admin_credential) {
-      data.admin_credential = hashPin(data.admin_pin || '1234');
+      if(typeof data.admin_pin!=='string'||!/^\d{4,8}$/.test(data.admin_pin))throw Error('Missing administrator credential');
+      data.admin_credential = hashPin(data.admin_pin);
       delete data.admin_pin;
       await saveLibrary(file, data);
     }
+    if(!validCredential(data.admin_credential))throw Error('Invalid administrator credential');
     return data;
   } catch (error) {
     if (error.code !== 'ENOENT') throw new Error(`Cannot read library.json: ${error.message}`);

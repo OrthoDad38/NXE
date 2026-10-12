@@ -3,10 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   getLibrary: () => ipcRenderer.invoke('library:get'),
   getTheme: () => ipcRenderer.invoke('theme:get'),
-  useBuiltinTheme: () => ipcRenderer.invoke('admin:theme-builtin'),
   getAdminAccess: () => ipcRenderer.invoke('admin:access'),
   setPinProtection: required => ipcRenderer.invoke('admin:pin-protection',required),
-  importTheme: () => ipcRenderer.invoke('admin:theme-import'),
   selectTheme: id => ipcRenderer.invoke('admin:theme-select',id),
   setThemeAudio: audio => ipcRenderer.invoke('admin:theme-audio',audio),
   launchXeniaGame: id => ipcRenderer.invoke('game:launch', id),

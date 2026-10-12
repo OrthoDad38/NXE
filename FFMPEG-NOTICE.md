@@ -1,14 +1,15 @@
-# FFmpeg notice
+# FFmpeg developer-tool notice
 
-NXE invokes FFmpeg as a separate local process to convert user-supplied XMA interface sounds into PCM WAV files. It is supplied by ffmpeg-static 5.3.0; NXE's source remains MIT licensed. FFmpeg and ffmpeg-static retain their own licenses.
+FFmpeg is a development dependency used by the local dashboard asset-recovery tooling to convert XMA to PCM WAV. The shipped NXE application uses already-converted audio and does not contain or expose FFmpeg, cabextract/expand decoding, or an import endpoint.
 
-The Windows x64 binary supplied for this build reports FFmpeg 6.1.1, GPL v3, and source revision e38092ef93. The package contains ffmpeg.exe.LICENSE and ffmpeg.exe.README alongside the unpacked executable. Consult those files for build configuration and component licensing.
+The optional ffmpeg-static 5.3.0 developer package retains its own license and supplies build-specific FFmpeg licenses/readmes. The Windows tool reports FFmpeg 6.1.1, GPL v3, source revision e38092ef93. Do not process untrusted archives with this optional recovery tool; it is outside the shipped application's runtime security review.
 
-Source and build references:
+Source/build references:
 - https://github.com/FFmpeg/FFmpeg/commit/e38092ef93
 - https://github.com/eugeneware/ffmpeg-static/releases/tag/b6.1.1
 - https://github.com/eugeneware/ffmpeg-static
 - https://www.gyan.dev/ffmpeg/builds/
 - https://johnvansickle.com/ffmpeg/
+- https://ffmpeg.org/security.html
 
-Build on the target OS to obtain the matching Windows/Linux binary. Do not reuse Windows node_modules when building a Linux installer. The built-in NXE package includes seven Microsoft sound cues converted from the owner's supplied dashboard archive; optional imports can convert additional local resources. Dashboard asset ownership is documented in assets/ATTRIBUTION.md.
+The source code remains MIT licensed. Dashboard audio/artwork ownership is documented in assets/ATTRIBUTION.md.

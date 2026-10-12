@@ -46,10 +46,11 @@ function createService(fetcher) {
 async function applyCached(games, directory) {
   for (const game of games) {
     if (!game.uses_fallback_art) continue;
-    const file = path.join(directory, `${game.id}.jpg`);
+    const file = coverPath(directory,game.id);
     try { await fs.access(file); game.cover_art_path = file; game.uses_fallback_art = false; } catch(error) { if(error.code !== 'ENOENT') throw error; }
   }
   return games;
 }
-function isCachedCover(game,directory){return typeof game.cover_art_path==='string' && path.resolve(game.cover_art_path)===path.resolve(directory,`${game.id}.jpg`);}
-module.exports = { createService, matches, applyCached,isCachedCover };
+function coverPath(directory,id){if(typeof id!=='string'||! /^[a-zA-Z0-9_-]{1,64}$/.test(id))throw Error('Invalid game ID');return path.join(directory,`${id}.jpg`);}
+function isCachedCover(game,directory){try{return typeof game.cover_art_path==='string' && path.resolve(game.cover_art_path)===path.resolve(coverPath(directory,game.id));}catch{return false;}}
+module.exports = { createService, matches, applyCached,isCachedCover,coverPath };

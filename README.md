@@ -17,7 +17,7 @@ A fullscreen, controller-first launcher that gives your Xenia Canary game librar
 
 ## Screenshots
 
-Current **v1.8.0** captures use a demo library, scripted controller state, and sample configuration paths. Click an image to view its full 1920×1080 capture.
+Current **v1.9.0** captures use a demo library, scripted controller state, and sample configuration paths. Click an image to view its full 1920×1080 capture.
 
 | Disc carousel | Administrator settings |
 | --- | --- |
@@ -85,7 +85,7 @@ For Proton, use the absolute Proton script path and `["run"]` arguments. Supply 
 1. Connect a standard-mapped Xbox controller. D-pad/left stick browses, A selects/launches, and LB/RB jumps five games.
 2. Press **Start** or click **Admin**. The initial PIN is **1234**.
 3. Choose **Browse ROM** and **Browse Xenia**, then **Save and rescan**.
-4. Set a **New PIN** and save, or toggle **PIN protection** off for direct admin access.
+4. Change the initial PIN with **New PIN** and save before child/unattended use. Leave PIN protection enabled for restricted access, or turn it off for direct admin access.
 
 PIN controls: D-pad chooses, A enters, X erases, Y submits, and B cancels. Keyboard typing, Tab/Enter/Escape, paste, and native mouse/keyboard file pickers also work.
 
@@ -138,5 +138,7 @@ Fullscreen kiosk mode blocks app close/navigation/devtools controls, but OS shor
 ## Validation and licenses
 
 Windows packaging, renderer/IPC tests, native window handoff, and an isolated Xenia/Fable II startup check have been verified. Physical controller coverage and Linux Mint runtime testing remain target-machine checks. See [VALIDATION.md](VALIDATION.md).
+
+See [SECURITY.md](SECURITY.md) for the security review, protections, and release checks.
 
 Source code is MIT licensed. Dashboard assets, recordings, game artwork, and Xbox trademarks retain their respective ownership. See [asset attribution](assets/ATTRIBUTION.md), [dashboard resources](NXE-ASSETS.md), and [FFmpeg notice](FFMPEG-NOTICE.md).

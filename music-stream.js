@@ -1,7 +1,7 @@
 'use strict';
 // Ogg seeking/looping needs a known length and byte-range responses.
-function musicResponse(bytes,range){
-  const size=bytes.length,headers={'Content-Type':'audio/ogg','Accept-Ranges':'bytes','Content-Length':String(size)};
+function musicResponse(bytes,range,mime='audio/ogg'){
+  const size=bytes.length,headers={'Content-Type':mime,'Accept-Ranges':'bytes','Content-Length':String(size),'X-Content-Type-Options':'nosniff','Cache-Control':'no-store'};
   if(!range)return new Response(bytes,{headers});
   const match=/^bytes=(\d*)-(\d*)$/.exec(range);
   const invalid=()=>new Response(null,{status:416,headers:{'Content-Range':`bytes */${size}`}});
