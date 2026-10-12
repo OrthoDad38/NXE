@@ -38,7 +38,7 @@ Choose the original green dashboard or Wallpaper 1–9 under **Admin → NXE The
 <details>
 <summary>Wallpaper and sound controls</summary>
 
-![Wallpaper and sound settings](docs/screenshots/wallpapers-and-sound.jpg)
+![NXE themes menu with wallpaper choices and sound controls](docs/screenshots/wallpaper-sound-settings.jpg)
 
 Volume, mute, and Test sound are available in the same menu. Preferences save immediately.
 
