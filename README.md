@@ -1,171 +1,142 @@
 # NXE — New Xenia Experience
 
-A fullscreen, controller-first Electron launcher for Xenia Canary on Windows 10/11 and Linux Mint. The built-in NXE theme includes the Xbox 360 dashboard background, nine additional wallpapers, original scene artwork, button legends, and seven navigation/select/back/menu sounds. No dashboard import, separate theme download, or internet connection is required to use them. Games and Xenia are not included.
+A fullscreen, controller-first launcher that gives your Xenia Canary game library the look and feel of the Xbox 360 NXE dashboard. Built-in wallpapers, interface sounds, and background music work offline. Supply your own Xenia installation and games.
 
-The Game Library uses game cover art tiles, with the classic floor reflections. Missing covers show green disc tiles and cleaned game titles.
+![NXE Game Library](docs/screenshots/game-library.jpg)
 
-## Windows: install without a terminal
+[Windows setup](#windows-setup) · [Linux Mint setup](#linux-mint-setup) · [Controls](#controls-and-first-setup) · [Build from source](#run-and-build-from-source)
 
-Run the **NXE Setup VERSION.exe** installer supplied with the build. It includes Electron, the launcher, NXE assets, and the sound conversion tool. It creates desktop and Start menu shortcuts. Open NXE from either shortcut; Node.js and npm are not required on the installed machine. Xenia Canary and your games must be supplied separately.
+## Features
 
-## Source checkout: Windows or Linux
+- **Cover-flow library:** rounded, full-size box art with reflections; D-pad/stick navigation and LB/RB shortcuts.
+- **Multi-disc games:** one game tile opens a secondary disc carousel, with shared artwork and numbered disc choices.
+- **Cover tools:** download missing artwork, confirm matches, replace a wrong downloaded cover, or rescan local images.
+- **Built-in themes and sound:** the original green dashboard, Wallpaper 1–9, navigation cues, and looping background music.
+- **Administrator settings:** Start-button access, optional PIN protection, native file pickers, and mouse/keyboard support.
+- **Game handoff:** on Windows, keep Xenia's startup window behind the dashboard until fullscreen settles; restore the dashboard and restart its music when the emulator exits.
 
-Install Node.js 22 or newer with npm and Git. Clone the repository and install the locked dependencies:
+## Screenshots
 
-```sh
-git clone https://github.com/OrthoDad38/NXE.git
-cd project-kratos
-npm ci
-npm run start
-```
+Current **v1.8.0** captures use a demo library, scripted controller state, and sample configuration paths. Click an image to view its full 1920×1080 capture.
 
-Use `git pull` and `npm ci` to update a checkout. For a Windows checkout, `npm run shortcut` creates a desktop shortcut without a visible terminal. Keep the checkout in the same location, or recreate its shortcut after moving it.
+| Disc carousel | Administrator settings |
+| --- | --- |
+| [![Blue Dragon disc selection](docs/screenshots/disc-carousel.jpg)](docs/screenshots/disc-carousel.jpg) | [![Administrator settings](docs/screenshots/administrator-settings.jpg)](docs/screenshots/administrator-settings.jpg) |
+| A opens the disc picker; select a disc with A or return to the library with B. | Configure ROMs, Xenia, runner options, covers, themes, and PIN protection. |
+| Cover management | Offline fallback |
+| [![Download, replace, and rescan covers](docs/screenshots/cover-tools.jpg)](docs/screenshots/cover-tools.jpg) | [![Fallback tile for a game without artwork](docs/screenshots/offline-fallback.jpg)](docs/screenshots/offline-fallback.jpg) |
+| Correct downloaded artwork without changing ROM files. | Missing artwork gets a green disc tile and a readable title. |
 
-```sh
-npm test
-npm run build
-```
+## Wallpaper examples
 
-`build` targets the current host. Build Windows packages on Windows and Linux packages on Linux. Do not copy Windows `node_modules` to Linux: Electron and FFmpeg are platform-specific.
+Choose the original green dashboard or Wallpaper 1–9 under **Admin → NXE Themes**.
 
-## Linux Mint installation and running
+| Wallpaper 1 | Wallpaper 5 | Wallpaper 9 |
+| --- | --- | --- |
+| [![Orange and red wallpaper](docs/screenshots/wallpaper-1.jpg)](docs/screenshots/wallpaper-1.jpg) | [![Soft multicolor wallpaper](docs/screenshots/wallpaper-5.jpg)](docs/screenshots/wallpaper-5.jpg) | [![Purple city wallpaper](docs/screenshots/wallpaper-9.jpg)](docs/screenshots/wallpaper-9.jpg) |
 
-Use a 64-bit Intel/AMD Mint desktop session. NXE runs natively on Linux; its Windows Xenia executable runs through Wine or a configured Proton runner. Wine/Proton and game compatibility depend on your GPU, drivers, emulator version, and game. Linux Mint runtime and package installation still need testing on a physical Mint machine; the Windows build does not establish Linux compatibility.
+<details>
+<summary>Wallpaper and sound controls</summary>
 
-### Install from a Debian package (preferred for Mint)
+![Wallpaper and sound settings](docs/screenshots/wallpapers-and-sound.jpg)
 
-Obtain the `nxe-launcher_VERSION_amd64.deb` built on Linux. In the file manager, double-click it, open the package installer, and select **Install Package**. Launch **NXE** from Mint's application menu afterward. Node.js and npm are not needed. Use Mint Software Manager to install **Wine** separately before launching games.
+Volume, mute, and Test sound are available in the same menu. Preferences save immediately.
 
-The terminal alternative, from the directory containing that package, is:
+</details>
+
+## Windows setup
+
+Run the supplied **NXE Setup VERSION.exe** installer, then launch NXE from its desktop or Start menu shortcut. The installer includes Electron, dashboard assets, and audio; Node.js/npm are not required. Xenia Canary and games are installed separately.
+
+For a source checkout, follow the commands below. Run `npm run shortcut` to create a desktop shortcut; recreate it if you move the checkout.
+
+## Linux Mint setup
+
+Use a 64-bit Intel/AMD Mint desktop. NXE runs natively; Xenia's Windows executable runs through Wine or a configured Proton runner. Linux Mint runtime testing remains pending.
+
+**Debian package:** obtain a Linux-built `nxe-launcher_VERSION_amd64.deb`, double-click it in the file manager, and install it through Mint's package installer. Launch NXE from the application menu. Alternatively:
 
 ```sh
 sudo apt install ./nxe-launcher_VERSION_amd64.deb
 ```
 
-Replace VERSION with the actual filename. `apt` resolves the package's desktop library dependencies. Do not run NXE itself with sudo. The Debian target installs an application-menu entry and uses electron-builder's sandbox setup. See the [electron-builder Linux documentation](https://www.electron.build/linux/) for packaging details.
+**AppImage:** obtain a Linux-built `NXE-VERSION.AppImage`, enable **Properties → Permissions → Allow executing file as program**, and double-click it. If FUSE is missing, install `libfuse2t64` on Mint 22.x or `libfuse2` on Mint 21.x. See the [AppImage FUSE guide](https://docs.appimage.org/user-guide/troubleshooting/fuse.html). For sandbox errors, prefer the Debian package; do not disable Electron's sandbox.
 
-### Portable AppImage
-
-Obtain the Linux-built **NXE-VERSION.AppImage**. In the file manager, open **Properties → Permissions**, enable permission to execute it, and double-click the file. AppImages do not install a menu entry automatically. The terminal alternative is:
-
-```sh
-chmod +x "NXE-VERSION.AppImage"
-"./NXE-VERSION.AppImage"
-```
-
-If it reports a missing FUSE library, install the compatibility library through Software Manager or these commands:
-
-```sh
-# Mint 22.x / Ubuntu 24.04 base:
-sudo apt install libfuse2t64
-# Mint 21.x / Ubuntu 22.04 base, instead:
-sudo apt install libfuse2
-```
-
-These package names and the extract-and-run fallback are documented by [AppImage](https://docs.appimage.org/user-guide/troubleshooting/fuse.html). If FUSE is unavailable, try `"./NXE-VERSION.AppImage" --appimage-extract-and-run`. For sandbox/AppArmor errors, prefer the installed Debian package and inspect the error on your system; do not launch with `--no-sandbox` or globally disable AppArmor.
-
-### Run or build from source on Mint
-
-Install Git and Wine through Software Manager, or:
+Install Wine using Software Manager or:
 
 ```sh
 sudo apt update
-sudo apt install git wine
+sudo apt install wine
 ```
 
-Install Node.js 22 or newer using the [official Node.js download instructions](https://nodejs.org/en/download). Confirm `node --version` and `npm --version`, then follow the source checkout commands above. The Mint repository's Node.js version may be older than required. Run npm as your normal desktop user.
+Keep Xenia in a writable folder, verify it independently, then configure NXE using Linux paths such as:
 
-Build Linux packages on that Mint machine:
+```text
+ROM directory:    /home/YOUR_USER/Games/Xbox360
+Xenia executable: /home/YOUR_USER/Emulators/Xenia/xenia_canary.exe
+Linux runner:     wine
+Runner arguments: []
+```
+
+For Proton, use the absolute Proton script path and `["run"]` arguments. Supply `STEAM_COMPAT_DATA_PATH` and `STEAM_COMPAT_CLIENT_INSTALL_PATH` in the launch environment when required. The runner must remain active until Xenia exits. NXE does not install Xenia, runners, or graphics drivers.
+
+## Controls and first setup
+
+1. Connect a standard-mapped Xbox controller. D-pad/left stick browses, A selects/launches, and LB/RB jumps five games.
+2. Press **Start** or click **Admin**. The initial PIN is **1234**.
+3. Choose **Browse ROM** and **Browse Xenia**, then **Save and rescan**.
+4. Set a **New PIN** and save, or toggle **PIN protection** off for direct admin access.
+
+PIN controls: D-pad chooses, A enters, X erases, Y submits, and B cancels. Keyboard typing, Tab/Enter/Escape, paste, and native mouse/keyboard file pickers also work.
+
+Admin sessions expire after five minutes and end when returning to games or launching a game. **Exit to Desktop** is the final menu option. Disabling PIN protection allows anyone to change settings and exit.
+
+## Games and artwork
+
+The scanner searches real subdirectories for `.iso`, `.xex`, and `.god` files. It skips symlinks. Local `ROM_NAME.png`, `.jpg`, or `.jpeg` sidecars take priority over cached downloads.
+
+Under **Download missing covers**, choose missing artwork downloads, **Replace a downloaded cover**, or **Rescan local cover images**. Confirm the matching title before downloading. Artwork comes from [x360db](https://github.com/xenia-manager/x360db) and is cached locally. These tools use the saved ROM directory; save changed paths first.
+
+Explicit numbered filenames such as `Blue Dragon (Disc 1).iso` and `(Disc 2).iso` group into one tile. Different editions/regions, formats, or duplicate disc numbers remain separate. Original files and per-disc caches are preserved. The secondary carousel chooses the starting disc; in-game swapping remains [Xenia Canary's own disc picker](https://github.com/xenia-canary/xenia-canary/blob/canary_experimental/src/xenia/kernel/xam/xam_content.cc).
+
+## Themes, music, and startup
+
+The default green dashboard and nine other wallpapers are built in. **NXE Themes** controls volume and mute for both navigation cues and background music. Music loops in the dashboard, stops at game launch, and restarts from the beginning when the emulator closes or launch fails. Wallpaper changes retain its playback position.
+
+On Windows, a native helper arms before launch, shields the startup window, and waits for 1.8 seconds of stable fullscreen before handing over. It has bounded timeout fallbacks. Game-specific loading may continue after handoff. Linux uses the normal Wine/Proton window transition.
+
+Convection is used when installed; it is not bundled. System fonts provide a fallback.
+
+## Run and build from source
+
+Install Node.js 22 or newer, npm, and Git:
 
 ```sh
+git clone https://github.com/OrthoDad38/NXE.git
+cd NXE
 npm ci
+npm run start
+```
+
+Update an existing checkout with `git pull` and `npm ci`. Close NXE before updating.
+
+```sh
 npm test
+npm run build:windows
+# On a Linux build host:
 npm run build:linux
 ```
 
-The configured outputs are AppImage and Debian packages under `dist/`. First builds download packaging tools, Electron, and a Linux FFmpeg binary. No cabextract or dashboard import is needed for the built-in theme.
+Build on the target OS; do not copy Windows `node_modules` to Linux. Outputs are in `dist/`: Windows NSIS installer, Linux Debian package, and AppImage. Builds are unsigned and not automatically published.
 
-### Configure Xenia on Mint
+## Settings and kiosk limits
 
-1. Put Xenia Canary in a folder you can write to, such as `/home/YOUR_USER/Emulators/Xenia`. Install compatible graphics drivers and verify the emulator independently before configuring NXE. You can test it with `wine /home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
-2. Launch NXE, press controller **Start**, and enter the initial PIN **1234**.
-3. Choose **Browse ROM folder…** and **Browse Xenia executable…**. Select Linux paths, such as `/home/YOUR_USER/Games/Xbox360` and `/home/YOUR_USER/Emulators/Xenia/xenia_canary.exe`.
-4. Leave **Linux runner** as `wine` and **Runner arguments** as `[]` for ordinary Wine. Save and rescan.
-5. Launch a game with A. When the emulator process exits, NXE restores its fullscreen window and controller focus.
+Settings and caches use Electron's userData folder, normally `%APPDATA%/NXE` or `~/.config/NXE`. Existing profiles are detected automatically. PINs are stored as salted hashes.
 
-For Proton, select the absolute Proton script path as runner and set runner arguments to `["run"]`. Your launch environment must supply `STEAM_COMPAT_DATA_PATH` and `STEAM_COMPAT_CLIENT_INSTALL_PATH` if required by that Proton installation. A runner must remain alive until Xenia exits; wrappers that detach cannot return reliably to the kiosk. Wine prefixes are inherited from the launch environment. The app does not install Wine, Proton, graphics drivers, or Xenia.
+Fullscreen kiosk mode blocks app close/navigation/devtools controls, but OS shortcuts, task managers, compositor bindings, and physical access require account/OS restrictions. Use a limited kiosk account for child use. The launcher alone is not a security boundary.
 
-## Controller and administrator controls
+## Validation and licenses
 
-- D-pad/left stick: browse games. A: launch. LB/RB: jump five.
-- **Start: open administrator access.** The earlier LB + RB + D-pad Up + A shortcut also remains available.
-- Mouse: click **Admin**. Keyboard: type the PIN and Enter; Tab chooses controls, Enter activates, Escape cancels.
-- Initial PIN: **1234**. Change it with **New PIN** and **Save and rescan**.
-- PIN keypad: D-pad chooses, A enters, X erases, Y submits, B cancels. PIN navigation/entry uses the same left/right cycling cues as the game tiles.
-- Settings support controller entry, native typing/paste, and mouse/keyboard file pickers. Enter/Done accepts a field edit; Escape/Cancel discards it. Save and rescan persists paths, runner settings, and a changed PIN.
-- **PIN protection: on/off** immediately saves whether admin access asks for a PIN. Turn it off to open settings directly with Start or Admin, including access to Exit to desktop. Turn it back on to use the retained PIN. Turning it off does not erase your PIN; a new PIN is saved through Save and rescan.
-- **Exit to desktop** is always the last option. Admin sessions expire after five minutes and are cleared on game launch or return to Game Library. Five incorrect PINs impose a thirty-second cooldown when protection is enabled.
+Windows packaging, renderer/IPC tests, native window handoff, and an isolated Xenia/Fable II startup check have been verified. Physical controller coverage and Linux Mint runtime testing remain target-machine checks. See [VALIDATION.md](VALIDATION.md).
 
-PIN protection starts enabled, including for existing libraries without the new preference. Disabling it intentionally allows any user to open settings and exit the kiosk. Main-process caller validation, session checks, and restricted IPC remain active in either mode.
-
-## Built-in NXE theme, wallpapers, and sound
-
-Fresh installations automatically use **Original NXE · Green dashboard**. Existing wallpaper, audio, and imported-theme preferences are retained when available. If an older import is missing, NXE falls back to the built-in NXE theme.
-
-Admin → **NXE themes** offers **Original NXE · Green dashboard**, **Wallpaper 1** through **Wallpaper 9**, sound volume (0/25/50/75/100%), mute, and Test sound. Theme/audio changes save immediately. The seven cues are left, right, select, back, open, close, and focus. Playback failures do not block navigation.
-
-All 679 recovered image/audio assets and resource metadata are included under `assets/nxe/`; no Xbox executable, account/profile, ROM, or emulator binary is included. Bundled sound files are already converted to PCM WAV, so ordinary playback does not need conversion or access to the original download folder. Paths in saved built-in preferences use the portable `builtin` identifier.
-
-## Dashboard background music
-
-The app includes the Xbox 360 dashboard/menu audio requested from [this video](https://www.youtube.com/watch?v=wM_R2bnZakY), converted to local Ogg Vorbis. It starts with the dashboard and loops offline, including while using admin menus. Selecting a game stops the background track immediately. When the emulator exits or launching fails, the dashboard restarts the track from the beginning. Navigation cues remain independent.
-
-The NXE themes volume/mute settings control both the cues and background music. The music plays at 40% of the cue volume so it stays behind navigation sounds. Switching wallpapers or changing volume does not restart the track. Source attribution is recorded in assets/ATTRIBUTION.md.
-
-## Games and cover artwork
-
-Scanning recurses through real directories for `.iso`, `.xex`, and `.god` files, skipping symlinks. Same-folder ROM_NAME.png/.jpg/.jpeg artwork is detected case-insensitively. IDs are stable path hashes. This scans `.god` files rather than arbitrary extensionless Games on Demand containers; curate extracted games to avoid duplicate `.xex` entries.
-
-Admin → **Download missing covers** searches the [x360db archive](https://github.com/xenia-manager/x360db). Confirm the suggested title or skip it. Save changed ROM paths before downloading. Downloaded covers are cached in userData/covers and survive rescans; local sidecars take priority. The cover submenu also offers **Replace a downloaded cover** (choose a game, search again, and confirm a new match) and **Rescan local cover images**. Replacement keeps the previous cover until the download succeeds and refreshes its artwork URL so the new image appears immediately. Local sidecar files are not overwritten; update those files and rescan instead. Downloads use fixed source URLs, size/time bounds, and JPEG validation. Covers remain the property of their owners.
-
-## Settings, kiosk behavior, and security
-
-Fresh installs use `%APPDATA%/NXE` on Windows or `~/.config/NXE` on Linux. Existing installations automatically reuse their `project-kratos` or `Project Kratos` data folder when it contains library.json, preserving the saved PIN, paths, covers, imported assets, and preferences. Explicit userData overrides remain supported. PINs use salted scrypt hashes. Legacy plaintext credentials migrate automatically. A malformed library is preserved and produces an error rather than silently resetting protection.
-
-The launcher is frameless, fullscreen, and sandboxed with context isolation, no renderer Node access, controlled local artwork URLs, and a restrictive CSP. It stays fullscreen underneath Xenia during startup, releases game-interfering shortcuts, and restores focus on process termination or launch failure. Process commands use argument arrays with `shell: false`.
-
-Electron cannot block every OS escape route: Alt+Tab, Windows keys, secure attention sequences, compositor shortcuts, task managers, and physical access need account/OS restrictions. Use a dedicated limited kiosk account and test on the actual computer. Keep PIN protection enabled for child use. The launcher alone is not a security boundary.
-
-## Multi-disc games
-
-Explicit filenames such as `Blue Dragon (USA, Europe) (Disc 1).iso` and `(Disc 2).iso` are grouped into one carousel tile with a disc-count badge. A opens a secondary disc carousel; D-pad/stick selects, A launches the selected disc, and B/Escape returns to the original library position. The disc picker shares the game's cover and keeps dashboard music playing until launch. After the emulator closes, the picker remains available so another disc can be selected.
-
-Grouping recognizes numbered Disc/Disk/CD markers and supported extracted XEX disc-folder naming. It is conservative: different directories, region/edition tags, and file formats remain separate; duplicate numbers are left ungrouped rather than guessed. Only present files appear, and no files are merged/moved. Original per-disc IDs and downloaded covers remain in the underlying library/cache.
-
-This chooses the starting disc. Xenia Canary's in-game `XamSwapDisc` still opens its own disc-file picker; NXE does not inject a disc into a running emulator. See [Canary's disc handling](https://github.com/xenia-canary/xenia-canary/blob/canary_experimental/src/xenia/kernel/xam/xam_content.cc). Save/exit and choose the next disc only when supported by the particular game and save point.
-
-## Windows fullscreen handoff
-
-On Windows, the native shield is armed before Xenia is spawned. It actively keeps the loading dashboard above the emulator and lowers only windows owned by the launched emulator process. It enumerates visible windows rather than relying on a cached MainWindowHandle, checks borderless monitor-sized bounds with DPI/DWM handling, and waits for 1.8 seconds of continuous fullscreen before handing over. This masks the windowed and initial fullscreen startup frames seen in the supplied recording. Helper stderr is reported to the terminal if arming fails.
-
-Arming has an eight-second fallback; process watching has a 40-second helper deadline and 45-second outer timeout. Exit/errors cancel the helper and remove the shield. The settling interval is not a game-specific signal that loading has completed; a slow game may still show its own loading screen after handoff. Linux retains its existing Wine/Proton behavior.
-
-API references: [Electron always-on-top](https://www.electronjs.org/docs/latest/api/browser-window/#winsetalwaysontopflag-level-relativelevel), [Microsoft monitor APIs](https://learn.microsoft.com/en-us/windows/win32/gdi/multiple-display-monitors-functions), and [foreground restrictions](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow).
-
-## Packaging for people who avoid terminals
-
-The Windows NSIS installer is already configured and built; Linux AppImage and Debian targets are configured for Linux builds. Installers bundle Node/Electron and the NXE theme, so users launch with shortcuts and configure paths in the GUI. They still supply Xenia, games, and on Linux a runner.
-
-| Benefit | Tradeoff |
-| --- | --- |
-| Double-click setup and application shortcuts | Larger download because Electron/Chromium and FFmpeg are bundled |
-| Identical app/assets without npm setup | Separate builds and testing for each OS/architecture |
-| Offline dashboard assets and sounds | Every app/runtime update needs a new package; no automatic updater yet |
-| Familiar Windows uninstall and Mint package management | Unsigned Windows builds may show trust warnings; signing adds cost/setup |
-| Easier support for nontechnical users | Linux still needs compatible Wine/Proton and graphics drivers |
-
-The source code is MIT licensed; recovered Microsoft dashboard images/sounds and Xbox trademarks retain their own ownership and are not covered by MIT. The assets are included at the repository owner's request from their supplied archive. Archive availability does not establish redistribution rights. See [asset attribution](assets/ATTRIBUTION.md). Public distribution requires addressing these asset rights as well as bundled FFmpeg obligations.
-
-## Validation
-
-Run `npm test` for scanner, PIN/session, input, artwork, theme, and sound checks. Windows packaging and hidden Electron verification are performed locally. Linux builds and Mint installation/gameplay require separate target-machine validation. Compiled XUR DATA timelines and the console shell are not fully translated; this launcher recreates the dashboard interface rather than running Xbox dashboard code.
+Source code is MIT licensed. Dashboard assets, recordings, game artwork, and Xbox trademarks retain their respective ownership. See [asset attribution](assets/ATTRIBUTION.md), [dashboard resources](NXE-ASSETS.md), and [FFmpeg notice](FFMPEG-NOTICE.md).
