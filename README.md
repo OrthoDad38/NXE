@@ -4,7 +4,7 @@ A fullscreen, controller-first launcher that gives your Xenia Canary game librar
 
 ![NXE Game Library](docs/screenshots/game-library.jpg)
 
-[Windows setup](#windows-setup) · [Linux Mint setup](#linux-mint-setup) · [Controls](#controls-and-first-setup) · [Build from source](#run-and-build-from-source)
+[Download NXE for Windows](https://github.com/OrthoDad38/NXE/releases/latest) · [Windows setup](#windows-setup) · [Linux Mint setup](#linux-mint-setup) · [Controls](#controls-and-first-setup) · [Build from source](#run-and-build-from-source)
 
 ## Features
 
@@ -46,7 +46,7 @@ Volume, mute, and Test sound are available in the same menu. Preferences save im
 
 ## Windows setup
 
-Run the supplied **NXE Setup VERSION.exe** installer, then launch NXE from its desktop or Start menu shortcut. The installer includes Electron, dashboard assets, and audio; Node.js/npm are not required. Xenia Canary and games are installed separately.
+Download **NXE Setup 1.9.0.exe** from the [latest release](https://github.com/OrthoDad38/NXE/releases/latest), run the installer, then launch NXE from its desktop or Start menu shortcut. The installer includes Electron, dashboard assets, and audio; Node.js/npm are not required. Xenia Canary and games are installed separately. The installer is currently unsigned and Windows may display a security prompt. A SHA256 checksum file is included with the release.
 
 For a source checkout, follow the commands below. Run `npm run shortcut` to create a desktop shortcut; recreate it if you move the checkout.
 
