@@ -46,7 +46,7 @@ Volume, mute, and Test sound are available in the same menu. Preferences save im
 
 ## Windows setup
 
-Download **NXE Setup 1.9.0.exe** from the [latest release](https://github.com/OrthoDad38/NXE/releases/latest), run the installer, then launch NXE from its desktop or Start menu shortcut. The installer includes Electron, dashboard assets, and audio; Node.js/npm are not required. Xenia Canary and games are installed separately. The installer is currently unsigned and Windows may display a security prompt. A SHA256 checksum file is included with the release.
+Download **NXE.Setup.1.9.0.exe** from the [latest release](https://github.com/OrthoDad38/NXE/releases/latest), run the installer, then launch NXE from its desktop or Start menu shortcut. The installer includes Electron, dashboard assets, and audio; Node.js/npm are not required. Xenia Canary and games are installed separately. The installer is currently unsigned and Windows may display a security prompt. A SHA256 checksum file is included with the release.
 
 For a source checkout, follow the commands below. Run `npm run shortcut` to create a desktop shortcut; recreate it if you move the checkout.
 
